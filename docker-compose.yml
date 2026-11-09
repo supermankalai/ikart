@@ -1,0 +1,19 @@
+# Optional: run PostgreSQL in Docker instead of the locally installed one.
+#   docker compose up -d
+# Then set in backend/.env:
+#   DATABASE_URL=postgresql+psycopg://ekart:ekart@localhost:5433/ekart
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ekart
+      POSTGRES_PASSWORD: ekart
+      POSTGRES_DB: ekart
+    ports:
+      - "5433:5432"
+    volumes:
+      - ekart_pg:/var/lib/postgresql/data
+
+volumes:
+  ekart_pg:

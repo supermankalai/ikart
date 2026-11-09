@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eKart Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  body { background: #f6f4ef; }
+  .logo { font-family: var(--serif); font-size: 26px; font-weight: 700; }
+  .logo span { color: var(--gold); }
+
+  /* Login */
+  .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; background: radial-gradient(circle at 20% 20%, #efe5d3, #f6f4ef 50%); }
+  .login .card { width: 100%; max-width: 400px; padding: 32px; box-shadow: var(--shadow); }
+
+  /* Layout */
+  .app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+  aside { background: var(--dark); color: #cfc7b8; padding: 22px 14px; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; }
+  aside .logo { color: #fff; padding: 0 10px 4px; }
+  aside .sub { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #8a8273; padding: 0 10px 22px; }
+  aside nav a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 2px; }
+  aside nav a:hover { background: #1f1e1c; color: #fff; }
+  aside nav a.on { background: #2a2824; color: #fff; }
+  aside nav a .n { margin-left: auto; background: var(--gold); color: #fff; font-size: 11px; font-weight: 700; border-radius: 9px; padding: 1px 7px; }
+  aside .foot { margin-top: auto; font-size: 13px; padding: 0 10px; }
+  aside .foot a { display: block; padding: 6px 0; color: #a59d8e; }
+  aside .foot a:hover { color: #fff; }
+  main { padding: 28px 32px 60px; min-width: 0; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .topbar h1 { font-family: var(--serif); font-size: 30px; margin: 0; font-weight: 600; }
+  .mobile-nav { display: none; }
+  @media (max-width: 860px) {
+    .app { grid-template-columns: 1fr; }
+    aside { display: none; }
+    main { padding: 16px 16px 60px; }
+    .mobile-nav { display: flex; gap: 6px; overflow-x: auto; padding: 12px 16px; background: var(--dark); position: sticky; top: 0; z-index: 10; }
+    .mobile-nav a { color: #cfc7b8; font-size: 13px; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
+    .mobile-nav a.on { background: #2a2824; color: #fff; }
+  }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; font-weight: 600; }
+  .stat .val { font-size: 28px; font-weight: 600; margin: 6px 0 2px; font-family: var(--serif); }
+  .stat .hint { font-size: 12px; color: var(--muted); }
+  @media (max-width: 1000px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+  .two { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; margin-bottom: 24px; }
+  @media (max-width: 1000px) { .two { grid-template-columns: 1fr; } }
+  .card h3 { margin: 0 0 16px; font-size: 15px; font-weight: 600; }
+  .bars { display: flex; align-items: flex-end; gap: 10px; height: 180px; padding-top: 10px; }
+  .bars .b { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+  .bars .b i { width: 100%; max-width: 38px; background: var(--gold); border-radius: 6px 6px 0 0; min-height: 3px; position: relative; }
+  .bars .b i:hover::after { content: attr(data-v); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--dark); color: #fff; font-size: 11px; padding: 3px 6px; border-radius: 4px; white-space: nowrap; margin-bottom: 4px; }
+  .bars .b span { font-size: 11px; color: var(--muted); }
+  .list-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .list-row:last-child { border-bottom: 0; }
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tabs button { border: 1px solid var(--line); background: var(--surface); padding: 7px 14px; border-radius: 999px; font-size: 13px; }
+  .tabs button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .tools .input { max-width: 280px; }
+
+  .od { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; }
+  @media (max-width: 760px) { .od { grid-template-columns: 1fr; } }
+  .kv { font-size: 14px; }
+  .kv div { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; }
+  .kv span:first-child { color: var(--muted); }
+  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 700; margin: 0 0 10px; }
+  .switch { position: relative; width: 38px; height: 22px; display: inline-block; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch i { position: absolute; inset: 0; background: #d6d0c5; border-radius: 22px; transition: .2s; cursor: pointer; }
+  .switch i::before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+  .switch input:checked + i { background: var(--ok); }
+  .switch input:checked + i::before { transform: translateX(16px); }
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .settings-grid { grid-template-columns: 1fr; } }
+  .note { background: var(--info-soft); color: var(--info); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
+  .partner-logo { width: 34px; height: 34px; border-radius: 8px; background: var(--gold-soft); display: flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginView" class="login hidden">
+  <form class="card" id="loginForm">
+    <div class="logo" style="margin-bottom:4px">e<span>K</span>art</div>
+    <p class="muted" style="margin:0 0 24px">Sign in to the admin portal</p>
+    <div class="field"><label>Email</label><input class="input" name="email" value="admin@ekart.shop" required></div>
+    <div class="field"><label>Password</label><input class="input" type="password" name="password" value="admin123" required></div>
+    <div id="loginErr" class="badge b-bad hidden" style="margin-bottom:12px">Invalid email or password</div>
+    <button class="btn block">Sign in</button>
+    <p class="muted" style="font-size:12px;margin:16px 0 0;text-align:center">Demo login: admin@ekart.shop / admin123</p>
+  </form>
+</div>
+
+<!-- APP -->
+<div id="appView" class="hidden">
+  <div class="mobile-nav" id="mobileNav"></div>
+  <div class="app">
+    <aside>
+      <div class="logo">e<span>K</span>art</div>
+      <div class="sub">Admin portal</div>
+      <nav id="sideNav"></nav>
+      <div class="foot">
+        <a href="index.html" target="_blank">↗ View store</a>
+        <a href="#" onclick="logout()">⎋ Sign out</a>
+      </div>
+    </aside>
+    <main id="main"></main>
+  </div>
+</div>
+<div id="modalRoot"></div>
+
+<script src="assets/data.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const root = $("#modalRoot");
+const NAV = [
+  ["dashboard", "▦", "Dashboard"],
+  ["orders", "🧾", "Orders"],
+  ["products", "📦", "Products"],
+  ["customers", "👥", "Customers"],
+  ["payments", "💳", "Payments"],
+  ["shipments", "🚚", "Shipments"],
+  ["settings", "⚙", "Settings"],
+];
+let orderFilter = "All", orderSearch = "", productSearch = "";
+
+/* ---------- Auth (prototype only — real build uses a backend login + JWT/session) ---------- */
+const isAuthed = () => { try { return sessionStorage.getItem("ek_admin") === "1"; } catch (e) { return false; } };
+$("#loginForm").onsubmit = (e) => {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  if (f.email.trim() === "admin@ekart.shop" && f.password === "admin123") {
+    try { sessionStorage.setItem("ek_admin", "1"); } catch (er) {}
+    boot();
+  } else $("#loginErr").classList.remove("hidden");
+};
+function logout() { try { sessionStorage.removeItem("ek_admin"); } catch (e) {} location.hash = ""; boot(); }
+
+/* ---------- Helpers ---------- */
+function modal(html, cls = "") { root.innerHTML = `<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal ${cls}">${html}</div></div>`; }
+function closeModal() { root.innerHTML = ""; }
+const head = (t) => `<div class="modal-head"><h3>${t}</h3><button class="icon-btn" onclick="closeModal()" aria-label="Close">✕</button></div>`;
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+const pendingShip = () => EK.orders().filter((o) => ["Placed", "Packed"].includes(o.status)).length;
+const lowStock = () => EK.products().filter((p) => p.stock < 10);
+const page = (title, actions, body) => `<div class="topbar"><h1>${title}</h1><div class="row wrap">${actions || ""}</div></div>${body}`;
+
+/* ---------- Router ---------- */
+function current() { return (location.hash.replace("#/", "") || "dashboard").split("?")[0]; }
+function renderNav() {
+  const cur = current(); const n = pendingShip();
+  $("#sideNav").innerHTML = NAV.map(([k, ic, l]) => `<a href="#/${k}" class="${k === cur ? "on" : ""}"><span>${ic}</span>${l}${k === "orders" && n ? `<span class="n">${n}</span>` : ""}</a>`).join("");
+  $("#mobileNav").innerHTML = NAV.map(([k, ic, l]) => `<a href="#/${k}" class="${k === cur ? "on" : ""}">${l}</a>`).join("") + `<a href="#" onclick="logout()">Sign out</a>`;
+}
+function render() {
+  if (!isAuthed()) return;
+  renderNav();
+  const views = { dashboard, orders, products, customers, payments, shipments, settings };
+  $("#main").innerHTML = (views[current()] || dashboard)();
+  afterRender();
+}
+window.addEventListener("hashchange", render);
+function boot() {
+  $("#loginView").classList.toggle("hidden", isAuthed());
+  $("#appView").classList.toggle("hidden", !isAuthed());
+  render();
+}
+// Keep admin in sync when an order is placed in the store tab
+window.addEventListener("storage", (e) => { if (e.key && e.key.startsWith("ekart_") && !root.innerHTML) render(); });
+
+/* ---------- Dashboard ---------- */
+function dashboard() {
+  const os = EK.orders();
+  const live = os.filter((o) => o.status !== "Cancelled");
+  const revenue = live.reduce((s, o) => s + o.total, 0);
+  const today = new Date().toDateString();
+  const todayOrders = os.filter((o) => new Date(o.date).toDateString() === today);
+  const days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - (6 - i)); return d; });
+  const perDay = days.map((d) => live.filter((o) => new Date(o.date).toDateString() === d.toDateString()).reduce((s, o) => s + o.total, 0));
+  const max = Math.max(...perDay, 1);
+  const top = {}; live.forEach((o) => o.items.forEach((i) => { top[i.name] = top[i.name] || { ...i, sold: 0 }; top[i.name].sold += i.qty; }));
+  const topList = Object.values(top).sort((a, b) => b.sold - a.sold).slice(0, 5);
+  const low = lowStock();
+  return page(`Good day, Admin`, `<a class="btn ghost sm" href="index.html" target="_blank">View store</a><button class="btn sm" onclick="editProduct()">+ Add product</button>`, `
+    <div class="stats">
+      <div class="card stat"><div class="label">Total revenue</div><div class="val">${EK.money(revenue)}</div><div class="hint">${live.length} active orders</div></div>
+      <div class="card stat"><div class="label">Orders today</div><div class="val">${todayOrders.length}</div><div class="hint">${EK.money(todayOrders.reduce((s, o) => s + o.total, 0))} in sales</div></div>
+      <div class="card stat"><div class="label">To be shipped</div><div class="val">${pendingShip()}</div><div class="hint">Placed or packed</div></div>
+      <div class="card stat"><div class="label">Low stock</div><div class="val" style="color:${low.length ? "var(--bad)" : "inherit"}">${low.length}</div><div class="hint">Products under 10 units</div></div>
+    </div>
+    <div class="two">
+      <div class="card"><h3>Sales, last 7 days</h3>
+        <div class="bars">${perDay.map((v, i) => `<div class="b"><i style="height:${(v / max) * 100}%" data-v="${EK.money(v)}"></i><span>${days[i].toLocaleDateString("en-IN", { weekday: "short" })}</span></div>`).join("")}</div>
+      </div>
+      <div class="card"><h3>Top products</h3>
+        ${topList.length ? topList.map((p) => `<div class="list-row"><div class="thumb sm" style="background:${p.color};width:38px;height:38px;font-size:18px">${p.emoji}</div><div style="flex:1">${EK.esc(p.name)}</div><b>${p.sold} sold</b></div>`).join("") : `<p class="muted">No sales yet.</p>`}
+      </div>
+    </div>
+    <div class="two">
+      <div><div class="row between" style="margin-bottom:12px"><h3 style="margin:0;font-size:15px">Recent orders</h3><a href="#/orders" style="color:var(--gold);font-size:13px">View all →</a></div>${orderTable(os.slice(0, 6))}</div>
+      <div class="card"><h3>Stock alerts</h3>
+        ${low.length ? low.map((p) => `<div class="list-row"><div class="thumb sm" style="background:${p.color};width:38px;height:38px;font-size:18px">${p.emoji}</div><div style="flex:1">${EK.esc(p.name)}</div>${p.stock <= 0 ? `<span class="badge b-bad">Out of stock</span>` : `<span class="badge b-warn">${p.stock} left</span>`}<button class="btn ghost sm" onclick="editProduct('${p.id}')">Restock</button></div>`).join("") : `<p class="muted">All products are well stocked.</p>`}
+      </div>
+    </div>`);
+}
+
+/* ---------- Orders ---------- */
+function orderTable(list) {
+  if (!list.length) return `<div class="card muted" style="text-align:center">No orders found.</div>`;
+  return `<div class="table-wrap"><table><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th></tr></thead><tbody>
+    ${list.map((o) => `<tr class="click" onclick="openOrder('${o.id}')">
+      <td><b>#${o.id}</b></td><td class="muted">${EK.date(o.date)}</td>
+      <td>${EK.esc(o.customer.name)}<div class="muted" style="font-size:12px">${EK.esc(o.customer.city)}</div></td>
+      <td>${o.items.reduce((s, i) => s + i.qty, 0)}</td><td><b>${EK.money(o.total)}</b></td>
+      <td>${EK.payBadge(o.payment.status)}<div class="muted" style="font-size:12px">${o.payment.method}</div></td>
+      <td>${EK.statusBadge(o.status)}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+function orders() {
+  const all = EK.orders();
+  const tabs = ["All", ...EK.STATUSES, "Cancelled"];
+  const q = orderSearch.toLowerCase();
+  const list = all.filter((o) => (orderFilter === "All" || o.status === orderFilter) && (!q || (o.id + o.customer.name + o.customer.phone).toLowerCase().includes(q)));
+  return page("Orders", `<button class="btn ghost sm" onclick="exportCSV()">Export CSV</button>`, `
+    <div class="tabs">${tabs.map((t) => `<button class="${t === orderFilter ? "on" : ""}" onclick="orderFilter='${t}';render()">${t} <span class="muted">${t === "All" ? all.length : all.filter((o) => o.status === t).length}</span></button>`).join("")}</div>
+    <div class="tools"><input class="input" id="orderSearch" placeholder="Search order ID, name or phone" value="${EK.esc(orderSearch)}"></div>
+    ${orderTable(list)}`);
+}
+function openOrder(id) {
+  const o = EK.orders().find((x) => x.id === id); if (!o) return;
+  const idx = EK.STATUSES.indexOf(o.status);
+  const next = o.status !== "Cancelled" && idx < EK.STATUSES.length - 1 ? EK.STATUSES[idx + 1] : null;
+  const partner = EK.settings().delivery.partner;
+  let action = "";
+  if (next === "Packed") action = `<button class="btn block" onclick="setStatus('${o.id}','Packed')">Mark as packed</button>`;
+  else if (next === "Shipped") action = `<button class="btn gold block" onclick="createShipment('${o.id}')">🚚 Create shipment with ${EK.esc(partner)}</button>`;
+  else if (next) action = `<button class="btn block" onclick="setStatus('${o.id}','${next}')">Mark as ${next.toLowerCase()}</button>`;
+  modal(`${head(`Order #${o.id}`)}<div class="modal-body">
+    <div class="row between wrap" style="margin-bottom:18px"><span class="muted">${EK.dateTime(o.date)}</span><div class="row">${EK.payBadge(o.payment.status)}${EK.statusBadge(o.status)}</div></div>
+    <div class="od">
+      <div>
+        <p class="section-title">Items</p>
+        ${o.items.map((i) => `<div class="list-row"><div class="thumb sm" style="background:${i.color}">${i.emoji}</div><div style="flex:1">${EK.esc(i.name)}<div class="muted" style="font-size:12px">${EK.money(i.price)} × ${i.qty}</div></div><b>${EK.money(i.price * i.qty)}</b></div>`).join("")}
+        <div class="kv" style="margin-top:10px"><div><span>Subtotal</span><span>${EK.money(o.subtotal)}</span></div><div><span>Shipping</span><span>${o.shipping ? EK.money(o.shipping) : "Free"}</span></div><div style="font-weight:600;font-size:16px"><span style="color:var(--ink)">Total</span><span>${EK.money(o.total)}</span></div></div>
+        <div class="divider"></div>
+        <p class="section-title">Payment</p>
+        <div class="kv"><div><span>Gateway</span><span>${EK.esc(o.payment.gateway)}</span></div><div><span>Method</span><span>${o.payment.method}</span></div><div><span>Reference</span><span>${EK.esc(o.payment.ref)}</span></div><div><span>Status</span><span>${EK.payBadge(o.payment.status)}</span></div></div>
+      </div>
+      <div>
+        <p class="section-title">Customer</p>
+        <div class="card" style="padding:14px;font-size:14px;margin-bottom:16px"><b>${EK.esc(o.customer.name)}</b><div class="muted">${EK.esc(o.customer.phone)}<br>${EK.esc(o.customer.email)}<br>${EK.esc(o.customer.address)}, ${EK.esc(o.customer.city)} - ${EK.esc(o.customer.pincode)}</div></div>
+        <p class="section-title">Shipment</p>
+        <div class="card" style="padding:14px;font-size:14px;margin-bottom:16px">${o.shipment ? `<div class="row"><div class="partner-logo">🚚</div><div><b>${EK.esc(o.shipment.partner)}</b><div class="muted" style="font-size:12px">AWB ${EK.esc(o.shipment.awb)}</div></div></div><div class="row" style="margin-top:10px;gap:8px"><button class="btn ghost sm" onclick="printLabel('${o.id}')">Print label</button></div>` : `<span class="muted">Not shipped yet</span>`}</div>
+        <p class="section-title">Timeline</p>
+        <ul class="timeline">${o.history.map((h) => `<li class="done">${h.status}<small>${EK.dateTime(h.at)}</small></li>`).join("")}</ul>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="row wrap">
+      <div style="flex:1;min-width:200px">${action || `<span class="muted">No further action needed.</span>`}</div>
+      ${!["Delivered", "Cancelled"].includes(o.status) ? `<button class="btn danger" onclick="cancelOrder('${o.id}')">Cancel order</button>` : ""}
+    </div>
+  </div>`, "wide");
+}
+function updateOrder(id, fn) {
+  const all = EK.orders(); const o = all.find((x) => x.id === id); fn(o); EK.saveOrders(all); render(); openOrder(id);
+}
+function setStatus(id, status) {
+  updateOrder(id, (o) => {
+    o.status = status; o.history.push({ status, at: new Date().toISOString() });
+    if (status === "Delivered" && o.payment.method === "COD") o.payment.status = "PAID";
+  });
+  EK.toast(`Order marked as ${status.toLowerCase()}`);
+}
+/*
+ * SIMULATED delivery partner booking.
+ * Real integration: backend calls the partner's "create shipment / manifest" API with
+ * pickup + drop address, weight, COD amount → receives AWB + label URL; partner webhooks
+ * then push status updates (picked up, out for delivery, delivered) to /api/shipments/webhook.
+ */
+function createShipment(id) {
+  const btn = event.target; btn.disabled = true; btn.textContent = "Booking pickup…";
+  setTimeout(() => {
+    const partner = EK.settings().delivery.partner;
+    updateOrder(id, (o) => {
+      const now = new Date().toISOString();
+      o.shipment = { partner, awb: "DP" + Math.floor(1e9 + Math.random() * 9e9), createdAt: now };
+      o.status = "Shipped"; o.history.push({ status: "Shipped", at: now });
+    });
+    EK.toast(`Shipment created with ${partner}`);
+  }, 1200);
+}
+function cancelOrder(id) {
+  if (!confirm("Cancel this order? Paid online orders will be marked for refund via Cashfree.")) return;
+  updateOrder(id, (o) => {
+    o.status = "Cancelled"; o.history.push({ status: "Cancelled", at: new Date().toISOString() });
+    if (o.payment.status === "PAID") o.payment.status = "REFUNDED";
+    if (o.payment.status === "PENDING") o.payment.status = "FAILED";
+    const products = EK.products(); o.items.forEach((i) => { const p = products.find((x) => x.id === i.id); if (p) p.stock += i.qty; }); EK.saveProducts(products);
+  });
+  EK.toast("Order cancelled and stock restored");
+}
+function printLabel(id) {
+  const o = EK.orders().find((x) => x.id === id);
+  const w = window.open("", "_blank", "width=420,height=560"); if (!w) return EK.toast("Allow pop-ups to print labels");
+  w.document.write(`<title>Label ${o.id}</title><body style="font-family:monospace;padding:20px"><div style="border:2px solid #000;padding:16px">
+    <h2 style="margin:0">${EK.esc(o.shipment.partner)}</h2><p>AWB: <b>${o.shipment.awb}</b></p><div style="height:60px;background:repeating-linear-gradient(90deg,#000 0 2px,#fff 2px 5px,#000 5px 6px,#fff 6px 9px)"></div>
+    <p><b>TO:</b><br>${EK.esc(o.customer.name)}<br>${EK.esc(o.customer.address)}<br>${EK.esc(o.customer.city)} - ${EK.esc(o.customer.pincode)}<br>Ph: ${EK.esc(o.customer.phone)}</p>
+    <p><b>FROM:</b><br>${EK.esc(EK.settings().delivery.pickupName)}</p><p>Order #${o.id} · ${o.payment.method === "COD" && o.payment.status !== "PAID" ? "COD: " + EK.money(o.total) : "PREPAID"}</p></div><script>print()<\/script>`);
+}
+function exportCSV() {
+  const rows = [["Order", "Date", "Customer", "Phone", "City", "Total", "Payment", "Payment status", "Status", "AWB"]]
+    .concat(EK.orders().map((o) => [o.id, EK.date(o.date), o.customer.name, o.customer.phone, o.customer.city, o.total, o.payment.method, o.payment.status, o.status, o.shipment ? o.shipment.awb : ""]));
+  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "ekart-orders.csv"; a.click();
+}
+
+/* ---------- Products ---------- */
+function products() {
+  const q = productSearch.toLowerCase();
+  const list = EK.products().filter((p) => !q || (p.name + p.cat + p.id).toLowerCase().includes(q));
+  return page("Products", `<button class="btn sm" onclick="editProduct()">+ Add product</button>`, `
+    <div class="tools"><input class="input" id="productSearch" placeholder="Search products" value="${EK.esc(productSearch)}"><span class="muted" style="font-size:13px">${list.length} products</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Visible</th><th></th></tr></thead><tbody>
+    ${list.map((p) => `<tr>
+      <td><div class="row"><div class="thumb sm" style="background:${p.color}">${p.emoji}</div><div><b>${EK.esc(p.name)}</b><div class="muted" style="font-size:12px">${p.id}</div></div></div></td>
+      <td>${EK.esc(p.cat)}</td>
+      <td><b>${EK.money(p.price)}</b>${p.mrp > p.price ? `<div class="muted" style="font-size:12px;text-decoration:line-through">${EK.money(p.mrp)}</div>` : ""}</td>
+      <td>${p.stock <= 0 ? `<span class="badge b-bad">0</span>` : p.stock < 10 ? `<span class="badge b-warn">${p.stock}</span>` : `<span class="badge b-ok">${p.stock}</span>`}</td>
+      <td><label class="switch"><input type="checkbox" ${p.active ? "checked" : ""} onchange="toggleProduct('${p.id}',this.checked)"><i></i></label></td>
+      <td style="white-space:nowrap"><button class="btn ghost sm" onclick="editProduct('${p.id}')">Edit</button> <button class="btn danger sm" onclick="deleteProduct('${p.id}')">Delete</button></td>
+    </tr>`).join("")}
+    </tbody></table></div>`);
+}
+function toggleProduct(id, on) { const ps = EK.products(); ps.find((p) => p.id === id).active = on; EK.saveProducts(ps); EK.toast(on ? "Product visible in store" : "Product hidden from store"); }
+function deleteProduct(id) { if (!confirm("Delete this product?")) return; EK.saveProducts(EK.products().filter((p) => p.id !== id)); render(); EK.toast("Product deleted"); }
+const COLORS = ["#ebe2d2", "#efe4e0", "#e3e6ea", "#e6ebe2", "#efe8dc", "#eadfd4", "#e2e7e4", "#ece3ee"];
+function editProduct(id) {
+  const p = id ? EK.products().find((x) => x.id === id) : { name: "", cat: "", price: "", mrp: "", stock: "", emoji: "🛍️", color: COLORS[0], desc: "", active: true };
+  modal(`${head(id ? "Edit product" : "Add product")}<form class="modal-body" id="pForm">
+    <div class="field"><label>Product name</label><input class="input" name="name" required value="${EK.esc(p.name)}"></div>
+    <div class="grid-2">
+      <div class="field"><label>Category</label><input class="input" name="cat" required list="cats" value="${EK.esc(p.cat)}"><datalist id="cats">${[...new Set(EK.products().map((x) => x.cat))].map((c) => `<option value="${EK.esc(c)}">`).join("")}</datalist></div>
+      <div class="field"><label>Stock quantity</label><input class="input" type="number" min="0" name="stock" required value="${p.stock}"></div>
+      <div class="field"><label>Selling price (₹)</label><input class="input" type="number" min="1" name="price" required value="${p.price}"></div>
+      <div class="field"><label>MRP (₹)</label><input class="input" type="number" min="0" name="mrp" value="${p.mrp}"></div>
+    </div>
+    <div class="field"><label>Description</label><textarea class="input" rows="3" name="desc">${EK.esc(p.desc)}</textarea></div>
+    <div class="grid-2">
+      <div class="field"><label>Image (prototype: emoji)</label><input class="input" name="emoji" value="${EK.esc(p.emoji)}" maxlength="4"></div>
+      <div class="field"><label>Background</label><div class="row wrap" style="gap:6px">${COLORS.map((c) => `<label style="cursor:pointer"><input type="radio" name="color" value="${c}" ${c === p.color ? "checked" : ""} style="display:none"><span style="display:block;width:26px;height:26px;border-radius:50%;background:${c};border:2px solid ${c === p.color ? "var(--ink)" : "var(--line)"}" onclick="this.parentElement.parentElement.querySelectorAll('span').forEach(s=>s.style.borderColor='var(--line)');this.style.borderColor='var(--ink)'"></span></label>`).join("")}</div></div>
+    </div>
+    <p class="muted" style="font-size:12px;margin-top:0">In the real build this becomes a photo upload (multiple images per product).</p>
+    <button class="btn block">${id ? "Save changes" : "Add product"}</button>
+  </form>`);
+  $("#pForm").onsubmit = (e) => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target));
+    const data = { name: f.name.trim(), cat: f.cat.trim(), price: +f.price, mrp: +f.mrp || +f.price, stock: +f.stock, emoji: f.emoji || "🛍️", color: f.color || COLORS[0], desc: f.desc.trim() };
+    const ps = EK.products();
+    if (id) Object.assign(ps.find((x) => x.id === id), data);
+    else ps.unshift({ id: EK.uid("P"), active: true, ...data });
+    EK.saveProducts(ps); closeModal(); render(); EK.toast(id ? "Product updated" : "Product added");
+  };
+}
+
+/* ---------- Customers ---------- */
+function customers() {
+  const map = {};
+  EK.orders().forEach((o) => {
+    const c = map[o.customer.phone] || (map[o.customer.phone] = { ...o.customer, orders: 0, spent: 0, last: o.date });
+    c.orders++; if (o.status !== "Cancelled") c.spent += o.total; if (o.date > c.last) c.last = o.date;
+  });
+  const list = Object.values(map).sort((a, b) => b.spent - a.spent);
+  return page("Customers", "", `<div class="table-wrap"><table><thead><tr><th>Customer</th><th>Phone</th><th>City</th><th>Orders</th><th>Total spent</th><th>Last order</th></tr></thead><tbody>
+    ${list.map((c) => `<tr class="click" onclick="orderSearch='${c.phone}';orderFilter='All';location.hash='/orders'"><td><b>${EK.esc(c.name)}</b><div class="muted" style="font-size:12px">${EK.esc(c.email)}</div></td><td>${EK.esc(c.phone)}</td><td>${EK.esc(c.city)}</td><td>${c.orders}</td><td><b>${EK.money(c.spent)}</b></td><td class="muted">${EK.date(c.last)}</td></tr>`).join("")}
+  </tbody></table></div>`);
+}
+
+/* ---------- Payments ---------- */
+function payments() {
+  const os = EK.orders();
+  const sum = (f) => os.filter(f).reduce((s, o) => s + o.total, 0);
+  const cf = EK.settings().cashfree;
+  return page("Payments", `<span class="badge ${cf.appId ? "b-ok" : "b-warn"}">Cashfree · ${cf.appId ? "Connected" : "Not configured"} (${EK.esc(cf.mode)})</span>`, `
+    <div class="stats">
+      <div class="card stat"><div class="label">Collected online</div><div class="val">${EK.money(sum((o) => o.payment.gateway === "Cashfree" && o.payment.status === "PAID"))}</div><div class="hint">Via Cashfree</div></div>
+      <div class="card stat"><div class="label">COD collected</div><div class="val">${EK.money(sum((o) => o.payment.method === "COD" && o.payment.status === "PAID"))}</div><div class="hint">Remitted by delivery partner</div></div>
+      <div class="card stat"><div class="label">COD pending</div><div class="val">${EK.money(sum((o) => o.payment.method === "COD" && o.payment.status === "PENDING"))}</div><div class="hint">To collect at delivery</div></div>
+      <div class="card stat"><div class="label">Refunded</div><div class="val">${EK.money(sum((o) => o.payment.status === "REFUNDED"))}</div><div class="hint">Cancelled orders</div></div>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Gateway</th><th>Method</th><th>Reference</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+    ${os.map((o) => `<tr class="click" onclick="openOrder('${o.id}')"><td><b>#${o.id}</b></td><td class="muted">${EK.date(o.date)}</td><td>${EK.esc(o.customer.name)}</td><td>${EK.esc(o.payment.gateway)}</td><td>${o.payment.method}</td><td class="muted" style="font-family:monospace;font-size:12px">${EK.esc(o.payment.ref)}</td><td><b>${EK.money(o.total)}</b></td><td>${EK.payBadge(o.payment.status)}</td></tr>`).join("")}
+    </tbody></table></div>`);
+}
+
+/* ---------- Shipments ---------- */
+function shipments() {
+  const os = EK.orders();
+  const ready = os.filter((o) => ["Placed", "Packed"].includes(o.status));
+  const shipped = os.filter((o) => o.shipment);
+  const d = EK.settings().delivery;
+  return page("Shipments", `<span class="badge ${d.apiKey ? "b-ok" : "b-warn"}">${EK.esc(d.partner)} · ${d.apiKey ? "Connected" : "Not configured"}</span>`, `
+    <h3 style="font-size:15px;margin:0 0 12px">Ready to ship (${ready.length})</h3>
+    ${ready.length ? `<div class="table-wrap" style="margin-bottom:28px"><table><thead><tr><th>Order</th><th>Customer</th><th>Destination</th><th>Payment</th><th>Status</th><th></th></tr></thead><tbody>
+      ${ready.map((o) => `<tr><td><b>#${o.id}</b></td><td>${EK.esc(o.customer.name)}</td><td>${EK.esc(o.customer.city)} - ${EK.esc(o.customer.pincode)}</td><td>${o.payment.method === "COD" ? `COD ${EK.money(o.total)}` : "Prepaid"}</td><td>${EK.statusBadge(o.status)}</td><td><button class="btn sm" onclick="openOrder('${o.id}')">${o.status === "Placed" ? "Pack" : "Ship"}</button></td></tr>`).join("")}
+    </tbody></table></div>` : `<div class="card muted" style="margin-bottom:28px">Nothing waiting to ship. 🎉</div>`}
+    <h3 style="font-size:15px;margin:0 0 12px">All shipments (${shipped.length})</h3>
+    <div class="table-wrap"><table><thead><tr><th>AWB</th><th>Order</th><th>Partner</th><th>Destination</th><th>Shipped on</th><th>Status</th></tr></thead><tbody>
+      ${shipped.map((o) => `<tr class="click" onclick="openOrder('${o.id}')"><td style="font-family:monospace"><b>${EK.esc(o.shipment.awb)}</b></td><td>#${o.id}</td><td>${EK.esc(o.shipment.partner)}</td><td>${EK.esc(o.customer.city)}</td><td class="muted">${EK.date(o.shipment.createdAt)}</td><td>${EK.statusBadge(o.status)}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">No shipments yet.</td></tr>`}
+    </tbody></table></div>`);
+}
+
+/* ---------- Settings ---------- */
+function settings() {
+  const s = EK.settings();
+  return page("Settings", `<button class="btn sm" onclick="saveSettings()">Save settings</button>`, `
+    <form id="sForm" class="settings-grid" onsubmit="event.preventDefault();saveSettings()">
+      <div class="card"><h3>Store details</h3>
+        <div class="field"><label>Store name</label><input class="input" name="storeName" value="${EK.esc(s.storeName)}"></div>
+        <div class="grid-2"><div class="field"><label>Support phone</label><input class="input" name="supportPhone" value="${EK.esc(s.supportPhone)}"></div>
+        <div class="field"><label>Support email</label><input class="input" name="supportEmail" value="${EK.esc(s.supportEmail)}"></div></div>
+      </div>
+      <div class="card"><h3>Shipping & checkout</h3>
+        <div class="grid-2"><div class="field"><label>Free shipping above (₹)</label><input class="input" type="number" name="freeShippingAbove" value="${s.freeShippingAbove}"></div>
+        <div class="field"><label>Shipping fee (₹)</label><input class="input" type="number" name="shippingFee" value="${s.shippingFee}"></div></div>
+        <div class="row between"><span>Allow cash on delivery</span><label class="switch"><input type="checkbox" name="codEnabled" ${s.codEnabled ? "checked" : ""}><i></i></label></div>
+      </div>
+      <div class="card"><h3>💳 Cashfree payment gateway</h3>
+        <div class="note">Keys are stored on your <b>server</b> in the real build. Never put the secret key in the website code.</div>
+        <div class="field"><label>Environment</label><select class="input" name="cf_mode"><option value="sandbox" ${s.cashfree.mode === "sandbox" ? "selected" : ""}>Sandbox (testing)</option><option value="production" ${s.cashfree.mode === "production" ? "selected" : ""}>Production (live)</option></select></div>
+        <div class="field"><label>App ID (x-client-id)</label><input class="input" name="cf_appId" placeholder="TEST1234567890abcdef" value="${EK.esc(s.cashfree.appId)}"></div>
+        <div class="field"><label>Secret key (x-client-secret)</label><input class="input" type="password" name="cf_secretKey" placeholder="cfsk_ma_test_..." value="${EK.esc(s.cashfree.secretKey)}"></div>
+        <div class="field"><label>Webhook URL</label><input class="input" name="cf_webhookUrl" value="${EK.esc(s.cashfree.webhookUrl)}"></div>
+      </div>
+      <div class="card"><h3>🚚 Delivery partner</h3>
+        <div class="field"><label>Partner name</label><input class="input" name="d_partner" list="partners" value="${EK.esc(s.delivery.partner)}"><datalist id="partners"><option value="Shiprocket"><option value="Delhivery"><option value="Blue Dart"><option value="DTDC"><option value="Ekart Logistics"><option value="Xpressbees"></datalist></div>
+        <div class="field"><label>API key / token</label><input class="input" type="password" name="d_apiKey" value="${EK.esc(s.delivery.apiKey)}"></div>
+        <div class="field"><label>Pickup location name</label><input class="input" name="d_pickupName" value="${EK.esc(s.delivery.pickupName)}"></div>
+        <div class="grid-2"><div class="field"><label>Pickup address</label><input class="input" name="d_pickupAddress" value="${EK.esc(s.delivery.pickupAddress)}"></div>
+        <div class="field"><label>Pickup pincode</label><input class="input" name="d_pickupPincode" value="${EK.esc(s.delivery.pickupPincode)}"></div></div>
+      </div>
+      <div class="card" style="grid-column:1/-1"><div class="row between wrap"><div><h3 style="margin:0 0 4px">Demo data</h3><span class="muted" style="font-size:13px">Reset all products, orders and settings back to the sample data.</span></div><button type="button" class="btn danger sm" onclick="if(confirm('Reset all demo data?'))EK.resetDemo()">Reset demo data</button></div></div>
+    </form>`);
+}
+function saveSettings() {
+  const f = new FormData($("#sForm")); const g = (k) => (f.get(k) || "").toString().trim();
+  EK.saveSettings({
+    storeName: g("storeName"), supportPhone: g("supportPhone"), supportEmail: g("supportEmail"),
+    freeShippingAbove: +g("freeShippingAbove") || 0, shippingFee: +g("shippingFee") || 0, codEnabled: f.get("codEnabled") === "on",
+    cashfree: { mode: g("cf_mode"), appId: g("cf_appId"), secretKey: g("cf_secretKey"), webhookUrl: g("cf_webhookUrl") },
+    delivery: { partner: g("d_partner") || "Delivery Partner", apiKey: g("d_apiKey"), pickupName: g("d_pickupName"), pickupAddress: g("d_pickupAddress"), pickupPincode: g("d_pickupPincode") },
+  });
+  EK.toast("Settings saved");
+}
+
+/* ---------- Search inputs keep focus across re-render ---------- */
+function afterRender() {
+  const bind = (sel, setter) => { const el = $(sel); if (!el) return; el.oninput = () => { setter(el.value); const pos = el.selectionStart; render(); const n = $(sel); n.focus(); n.setSelectionRange(pos, pos); }; };
+  bind("#orderSearch", (v) => (orderSearch = v));
+  bind("#productSearch", (v) => (productSearch = v));
+}
+
+boot();
+</script>
+</body>
+</html>
