@@ -420,6 +420,10 @@ class StoreSettings(BaseModel):
     support_phone: str = "+91 98765 43210"
     support_email: str = "support@ikart.online"
     instagram_url: str = ""
+    # Shown on Contact / Terms pages (payment gateways require the legal business name and address)
+    business_name: str = ""
+    business_address: str = ""
+    jurisdiction_city: str = ""
     free_shipping_above: int = Field(default=999, ge=0)
     shipping_fee: int = Field(default=79, ge=0)
     cod_enabled: bool = True

@@ -59,6 +59,10 @@ export default function Settings() {
             <div className="field"><label htmlFor="s-email">Support email</label><input id="s-email" className="input" type="email" value={f.support_email} onChange={set("support_email")} /></div>
           </div>
           <div className="field"><label htmlFor="s-ig">Instagram URL</label><input id="s-ig" className="input" type="url" value={f.instagram_url} onChange={set("instagram_url")} /></div>
+          <div className="section-title mt-16">Business details (shown on Contact & Terms pages)</div>
+          <div className="field"><label htmlFor="s-biz">Legal business name</label><input id="s-biz" className="input" value={f.business_name} onChange={set("business_name")} placeholder="e.g. iKart Retail / your name as on PAN or GST" /></div>
+          <div className="field"><label htmlFor="s-addr">Registered business address</label><textarea id="s-addr" className="input" rows={3} value={f.business_address} onChange={set("business_address")} placeholder="Door no, street, city, state, PIN code" /></div>
+          <div className="field"><label htmlFor="s-jur">Jurisdiction city (for Terms)</label><input id="s-jur" className="input" value={f.jurisdiction_city} onChange={set("jurisdiction_city")} placeholder="e.g. Chennai" /></div>
         </div>
 
         <div className="card">

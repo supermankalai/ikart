@@ -282,7 +282,7 @@ function Footer() {
         <div className="cols">
           <div>
             <div className="logo">
-              e<span style={{ color: "var(--gold-2)" }}>K</span>art
+              i<span style={{ color: "var(--gold-2)" }}>K</span>art
             </div>
             <p style={{ maxWidth: 300 }}>{settings.tagline}. Thoughtfully made, carefully packed and delivered to your door.</p>
           </div>
@@ -299,7 +299,7 @@ function Footer() {
             <h4>Help</h4>
             <Link to="/account/orders">Track order</Link>
             <Link to="/shipping-policy">Shipping policy</Link>
-            <Link to="/refund-policy">Returns & refunds</Link>
+            <Link to="/refund-policy">Refunds & cancellations</Link>
             <Link to="/contact">Contact us</Link>
           </div>
           <div>

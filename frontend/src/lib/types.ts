@@ -240,6 +240,9 @@ export interface StoreSettings {
   support_phone: string;
   support_email: string;
   instagram_url: string;
+  business_name: string;
+  business_address: string;
+  jurisdiction_city: string;
   free_shipping_above: number;
   shipping_fee: number;
   cod_enabled: boolean;
