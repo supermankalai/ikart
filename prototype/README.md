@@ -1,10 +1,10 @@
-# eKart prototype
+# iKart prototype
 
-A clickable prototype of the eKart store and admin portal. There is no backend: all data lives in the browser (localStorage), so an order placed in the store shows up in admin right away.
+A clickable prototype of the iKart store and admin portal. There is no backend: all data lives in the browser (localStorage), so an order placed in the store shows up in admin right away.
 
 ## Open it
 - **Customer store:** open `index.html` in a browser
-- **Admin portal:** open `admin.html` (demo login `admin@ekart.shop` / `admin123`)
+- **Admin portal:** open `admin.html` (demo login `admin@ikart.online` / `admin123`)
 
 ## Files
 | File | Purpose |
@@ -33,3 +33,12 @@ A clickable prototype of the eKart store and admin portal. There is no backend: 
 
 ## Suggested production stack
 Next.js (store + admin) · Node/Express or Next.js API routes · PostgreSQL or MongoDB · Cloudinary or S3 for product photos · Cashfree PG · your delivery partner's API
+
+
+
+
+Webhooks: register the Cashfree webhook URL in the Cashfree dashboard, and set the Shiprocket webhook to https://yourdomain.com/api/shipping/webhook with your SHIPPING_WEBHOOK_SECRET.
+Place a real small-amount order end to end: payment, then order status, then shipping.
+Backups: schedule a daily pg_dump and keep a copy of backend/uploads/ somewhere off the server.
+Logs: journalctl -u ikart -f shows backend logs; Nginx logs are in /var/log/nginx/.
+Tell me which Ubuntu version you have and your domain name, and I can write a single setup script that runs steps 2–8 for you.

@@ -54,7 +54,7 @@ export default function Product() {
         setP(d);
         const firstInStock = d.variants.find((v) => v.stock > 0);
         setColor(firstInStock?.color || d.variants[0]?.color || "");
-        document.title = `${d.name} | eKart`;
+        document.title = `${d.name} | iKart`;
       })
       .catch((e) => setError(e.message));
     api<P[]>(`/api/products/${slug}/related`).then(setRelated).catch(() => setRelated([]));

@@ -113,7 +113,7 @@ def seed() -> None:
     try:
         admin = db.scalar(select(User).where(User.email == settings.admin_email.lower()))
         if not admin:
-            db.add(User(name="eKart Admin", email=settings.admin_email.lower(), phone="9876543210",
+            db.add(User(name="iKart Admin", email=settings.admin_email.lower(), phone="9876543210",
                         password_hash=hash_password(settings.admin_password), is_admin=True))
             print(f"[ok] Admin created: {settings.admin_email} / {settings.admin_password}")
         else:

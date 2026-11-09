@@ -60,7 +60,7 @@ export default function AdminLayout() {
         <button className="icon-btn" onClick={() => setMenu(true)} aria-label="Open admin menu" aria-expanded={menu}>
           <Icon name="menu" />
         </button>
-        <Link to="/admin" className="logo">e<span>K</span>art <small>Admin</small></Link>
+        <Link to="/admin" className="logo">i<span>K</span>art <small>Admin</small></Link>
         <Link to="/admin/orders" className="icon-btn" aria-label={`Orders to ship: ${toShip}`}>
           <Icon name="receipt" />
           {toShip > 0 && <span className="count-dot">{toShip}</span>}
@@ -72,7 +72,7 @@ export default function AdminLayout() {
           <button className="icon-btn admin-close" onClick={() => setMenu(false)} aria-label="Close menu">
             <Icon name="close" />
           </button>
-          <Link to="/admin" className="logo">e<span>K</span>art</Link>
+          <Link to="/admin" className="logo">i<span>K</span>art</Link>
           <div className="sub">Admin portal</div>
           <nav>
             {NAV.map((n) => (
@@ -125,7 +125,7 @@ function useTableLabels(ref: React.RefObject<HTMLElement>, enabled: boolean) {
 
 export function AdminTop({ title, children }: { title: string; children?: React.ReactNode }) {
   useEffect(() => {
-    document.title = `${title} | eKart Admin`;
+    document.title = `${title} | iKart Admin`;
   }, [title]);
   return (
     <div className="admin-top">

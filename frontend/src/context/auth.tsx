@@ -36,8 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onLogout = () => setUser(null);
-    window.addEventListener("ekart:logout", onLogout);
-    return () => window.removeEventListener("ekart:logout", onLogout);
+    window.addEventListener("ikart:logout", onLogout);
+    return () => window.removeEventListener("ikart:logout", onLogout);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {

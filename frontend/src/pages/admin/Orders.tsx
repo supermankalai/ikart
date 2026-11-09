@@ -52,7 +52,7 @@ export default function Orders() {
 
   const exportCsv = async () => {
     try {
-      await downloadFile("/api/admin/orders/export", filters, `ekart-orders-${new Date().toISOString().slice(0, 10)}.csv`);
+      await downloadFile("/api/admin/orders/export", filters, `ikart-orders-${new Date().toISOString().slice(0, 10)}.csv`);
     } catch (e) {
       toast((e as Error).message, "error");
     }

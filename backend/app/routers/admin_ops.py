@@ -147,7 +147,7 @@ def export_orders(
                     a.get("state"), a.get("pincode"), items, o.subtotal, o.discount, o.shipping_fee, o.total,
                     o.payment_method, o.payment_status, o.payment_ref, o.status, o.shipping_partner, o.awb])
     return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv",
-                             headers={"Content-Disposition": "attachment; filename=ekart-orders.csv"})
+                             headers={"Content-Disposition": "attachment; filename=ikart-orders.csv"})
 
 
 def _get_order(db: Session, number: str) -> Order:

@@ -56,7 +56,7 @@ export function Login() {
         </div>
         <button className="btn block lg" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
         <p className="center small muted mt-24">
-          New to eKart? <Link className="link" to={`/register${sp.get("next") ? `?next=${encodeURIComponent(sp.get("next")!)}` : ""}`}>Create an account</Link>
+          New to iKart? <Link className="link" to={`/register${sp.get("next") ? `?next=${encodeURIComponent(sp.get("next")!)}` : ""}`}>Create an account</Link>
         </p>
       </form>
     </div>
@@ -81,7 +81,7 @@ export function Register() {
     setErr("");
     try {
       await register(f);
-      toast("Account created. Welcome to eKart!", "success");
+      toast("Account created. Welcome to iKart!", "success");
       nav(next, { replace: true });
     } catch (e) {
       setErr((e as Error).message);
@@ -94,7 +94,7 @@ export function Register() {
     <div className="auth">
       <form className="card" onSubmit={submit}>
         <h1>Create account</h1>
-        <p className="muted mb-24">Join eKart for faster checkout and order tracking.</p>
+        <p className="muted mb-24">Join iKart for faster checkout and order tracking.</p>
         {err && <div className="form-error">{err}</div>}
         <div className="field">
           <label htmlFor="name">Full name</label>

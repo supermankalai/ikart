@@ -11,8 +11,8 @@ import { Drawer, Img } from "./ui";
 
 export function Logo() {
   return (
-    <Link to="/" className="logo" aria-label="eKart home">
-      e<span>K</span>art
+    <Link to="/" className="logo" aria-label="iKart home">
+      i<span>K</span>art
     </Link>
   );
 }
@@ -304,7 +304,7 @@ function Footer() {
           </div>
           <div>
             <h4>Company</h4>
-            <Link to="/about">About eKart</Link>
+            <Link to="/about">About iKart</Link>
             <Link to="/terms">Terms & conditions</Link>
             <Link to="/privacy">Privacy policy</Link>
             {settings.instagram_url && (

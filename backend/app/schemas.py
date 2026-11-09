@@ -414,11 +414,11 @@ class CouponOut(ORM):
 
 
 class StoreSettings(BaseModel):
-    store_name: str = "eKart"
+    store_name: str = "iKart"
     tagline: str = "Premium everyday wear"
     announcement: str = "Free shipping on orders above ₹999 · Easy 7-day returns"
     support_phone: str = "+91 98765 43210"
-    support_email: str = "support@ekart.shop"
+    support_email: str = "support@ikart.online"
     instagram_url: str = ""
     free_shipping_above: int = Field(default=999, ge=0)
     shipping_fee: int = Field(default=79, ge=0)

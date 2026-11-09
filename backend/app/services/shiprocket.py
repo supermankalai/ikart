@@ -1,6 +1,6 @@
 """Shiprocket API client (https://apiv2.shiprocket.in/v1/external).
 
-Flow used by eKart when the admin clicks "Ship with Shiprocket":
+Flow used by iKart when the admin clicks "Ship with Shiprocket":
   1. POST /orders/create/adhoc       -> Shiprocket order_id + shipment_id
   2. POST /courier/assign/awb        -> AWB number + courier name (needs wallet balance)
   3. POST /courier/generate/pickup   -> pickup request with the courier
@@ -20,7 +20,7 @@ from ..config import settings
 from ..models import Order
 from ..schemas import CourierOption
 
-log = logging.getLogger("ekart.shiprocket")
+log = logging.getLogger("ikart.shiprocket")
 IST = timezone(timedelta(hours=5, minutes=30))
 TRACKING_URL = "https://shiprocket.co/tracking/{awb}"
 

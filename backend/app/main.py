@@ -25,7 +25,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="eKart API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="iKart API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,4 +1,4 @@
-# eKart: online store + admin portal
+# iKart: online store + admin portal
 
 Premium T-shirts and track pants store with a full admin portal.
 
@@ -58,7 +58,7 @@ cd frontend; npm run dev
 | URL | What |
 |---|---|
 | http://localhost:5173 | Customer store |
-| http://localhost:5173/admin | Admin portal (login `admin@ekart.shop` / `admin123`, **change this**) |
+| http://localhost:5173/admin | Admin portal (login `admin@ikart.online` / `admin123`, **change this**) |
 | http://localhost:8000/docs | Interactive API documentation |
 
 Sample coupon: `WELCOME10` (10% off orders above ₹999, max ₹200).

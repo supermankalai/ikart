@@ -1,5 +1,5 @@
 /*
- * eKart prototype — shared mock data layer.
+ * iKart prototype — shared mock data layer.
  * Both the store (index.html) and admin (admin.html) read/write the same
  * browser localStorage, so an order placed in the store appears in admin.
  *
@@ -7,7 +7,7 @@
  *   GET/POST /api/products, /api/orders, /api/settings ...
  */
 const EK = (() => {
-  const PREFIX = "ekart_";
+  const PREFIX = "ikart_";
 
   const SEED_PRODUCTS = [
     { id: "P1001", name: "Classic Leather Watch", cat: "Accessories", price: 4999, mrp: 6499, stock: 24, emoji: "⌚", color: "#ebe2d2", desc: "Genuine leather strap, sapphire-coated glass and a minimal dial. Water resistant to 30m.", active: true },
@@ -21,14 +21,14 @@ const EK = (() => {
   ];
 
   const DEFAULT_SETTINGS = {
-    storeName: "eKart",
+    storeName: "iKart",
     supportPhone: "+91 98765 43210",
-    supportEmail: "support@ekart.shop",
+    supportEmail: "support@ikart.online",
     freeShippingAbove: 999,
     shippingFee: 79,
     codEnabled: true,
     cashfree: { mode: "sandbox", appId: "", secretKey: "", webhookUrl: "https://your-domain.com/api/payments/cashfree/webhook" },
-    delivery: { partner: "Delivery Partner", apiKey: "", pickupName: "eKart Warehouse", pickupAddress: "", pickupPincode: "" },
+    delivery: { partner: "Delivery Partner", apiKey: "", pickupName: "iKart Warehouse", pickupAddress: "", pickupPincode: "" },
   };
 
   // Order lifecycle used by both portals.

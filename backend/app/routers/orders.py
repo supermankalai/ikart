@@ -15,7 +15,7 @@ from ..services import cashfree
 from ..services import orders as svc
 
 router = APIRouter(prefix="/api", tags=["orders"])
-log = logging.getLogger("ekart.orders")
+log = logging.getLogger("ikart.orders")
 
 
 def _my_order(db: Session, user: User, number: str) -> Order:

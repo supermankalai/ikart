@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    app_name: str = "eKart"
+    app_name: str = "iKart"
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/ekart"
 
     jwt_secret: str = "change-this-to-a-long-random-secret"
@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     upload_dir: str = "uploads"
     max_upload_mb: int = 5
 
-    admin_email: str = "admin@ekart.shop"
+    admin_email: str = "admin@ikart.online"
     admin_password: str = "admin123"
 
     cashfree_env: str = "sandbox"

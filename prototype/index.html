@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>eKart Store</title>
+<title>iKart Store</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
@@ -114,7 +114,7 @@
 
 <header class="site">
   <div class="container">
-    <a href="#/" class="logo">e<span>K</span>art</a>
+    <a href="#/" class="logo">i<span>K</span>art</a>
     <nav class="main">
       <a href="#/" data-nav="home">Shop</a>
       <a href="#/" data-nav="new" onclick="setTimeout(()=>document.getElementById('shop').scrollIntoView({behavior:'smooth'}),50)">New In</a>
@@ -140,7 +140,7 @@
     <div class="container">
       <div class="hero">
         <div>
-          <div class="eyebrow">The eKart Collection</div>
+          <div class="eyebrow">The iKart Collection</div>
           <h1>Thoughtfully chosen.<br>Beautifully delivered.</h1>
           <p>Premium essentials for everyday living, packed with care and delivered to your door.</p>
           <div class="row wrap">
@@ -169,7 +169,7 @@
       <div class="story">
         <div class="eyebrow" style="color:var(--gold);letter-spacing:3px;font-size:12px;font-weight:600">OUR PROMISE</div>
         <h2>Quality you can feel</h2>
-        <p>Every eKart product is hand-picked, quality checked and packed in our own store before it ships to you.</p>
+        <p>Every iKart product is hand-picked, quality checked and packed in our own store before it ships to you.</p>
       </div>
     </div>
   </section>
@@ -190,7 +190,7 @@
 
 <footer class="site">
   <div class="container">
-    <div><span class="logo" style="font-size:20px">e<span>K</span>art</span><div style="margin-top:6px">© 2026 eKart. All rights reserved.</div></div>
+    <div><span class="logo" style="font-size:20px">i<span>K</span>art</span><div style="margin-top:6px">© 2026 iKart. All rights reserved.</div></div>
     <div id="footContact"></div>
     <div>Payments secured by Cashfree · Shipping by our delivery partner</div>
   </div>
@@ -394,7 +394,7 @@ function openCashfree() {
     NetBanking: `<div class="field"><label>Select bank</label><select class="input"><option>State Bank of India</option><option>HDFC Bank</option><option>ICICI Bank</option><option>Axis Bank</option></select></div>`,
   };
   modal(`<div class="cf-head"><div class="row between"><b>Cashfree Payments</b><span class="sandbox">${EK.esc(S().cashfree.mode)}</span></div>
-      <div style="opacity:.8;font-size:13px;margin-top:10px">Paying eKart</div><div class="amt">${EK.money(total)}</div></div>
+      <div style="opacity:.8;font-size:13px;margin-top:10px">Paying iKart</div><div class="amt">${EK.money(total)}</div></div>
     <div class="cf-tabs">${["UPI", "Card", "NetBanking"].map((t) => `<button class="${t === cfTab ? "on" : ""}" onclick="cfTab='${t}';openCashfree()">${t === "NetBanking" ? "Net Banking" : t}</button>`).join("")}</div>
     <div class="modal-body" id="cfBody">${tabBody[cfTab]}
       <button class="btn block cf-pay" style="margin-top:8px" onclick="cfPay(true)">Pay ${EK.money(total)}</button>

@@ -209,7 +209,7 @@ function logoTexture(onDark: boolean): CanvasTexture {
   x.textBaseline = "middle";
   const ink = onDark ? "rgba(255,248,235,0.92)" : "rgba(25,22,18,0.85)";
   x.fillStyle = ink;
-  x.fillText("e", 82, 50);
+  x.fillText("i", 92, 50);
   x.fillStyle = "#c39a5c";
   x.fillText("K", 120, 50);
   x.fillStyle = ink;

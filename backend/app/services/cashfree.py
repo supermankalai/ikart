@@ -19,7 +19,7 @@ import httpx
 from ..config import settings
 from ..models import Order, User
 
-log = logging.getLogger("ekart.cashfree")
+log = logging.getLogger("ikart.cashfree")
 
 
 class CashfreeError(Exception):
@@ -68,7 +68,7 @@ def create_order(order: Order, user: User, cf_order_id: str) -> dict:
         "order_meta": {
             "return_url": f"{settings.frontend_url}/order/{order.order_number}/status",
         },
-        "order_note": f"eKart order {order.order_number}",
+        "order_note": f"iKart order {order.order_number}",
         # Payment link expires with our pending-payment window (Cashfree minimum is 15 min)
         "order_expiry_time": (
             datetime.now(timezone.utc) + timedelta(minutes=max(settings.pending_payment_expiry_minutes, 16))

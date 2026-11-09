@@ -2,7 +2,7 @@
 
 Providers:
   * manual     - admin books the pickup on the partner's portal and types the AWB number.
-  * shiprocket - eKart creates the shipment, assigns a courier, books the pickup and gets the label
+  * shiprocket - iKart creates the shipment, assigns a courier, books the pickup and gets the label
                  through the Shiprocket API (services/shiprocket.py).
 
 Status updates arrive at  POST /api/shipping/webhook  (see routers/orders.py). It accepts:
@@ -111,7 +111,7 @@ def get_provider(key: str | None = None) -> DeliveryProvider:
     return cls()
 
 
-# ---------- Courier status words -> eKart order statuses ----------
+# ---------- Courier status words -> iKart order statuses ----------
 _ADVANCE = {
     "PICKED UP": OrderStatus.SHIPPED,
     "SHIPPED": OrderStatus.SHIPPED,
@@ -125,7 +125,7 @@ _ALERTS = ("RTO", "UNDELIVERED", "UNDELIVERABLE", "CANCELED", "CANCELLED", "LOST
 
 
 def interpret_partner_status(raw: str | None) -> tuple[str | None, bool]:
-    """Returns (eKart status to move to or None, is_alert)."""
+    """Returns (iKart status to move to or None, is_alert)."""
     if not raw:
         return None, False
     s = " ".join(raw.replace("_", " ").replace("-", " ").upper().split())

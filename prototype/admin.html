@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>eKart Admin</title>
+<title>iKart Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
@@ -87,13 +87,13 @@
 <!-- LOGIN -->
 <div id="loginView" class="login hidden">
   <form class="card" id="loginForm">
-    <div class="logo" style="margin-bottom:4px">e<span>K</span>art</div>
+    <div class="logo" style="margin-bottom:4px">i<span>K</span>art</div>
     <p class="muted" style="margin:0 0 24px">Sign in to the admin portal</p>
-    <div class="field"><label>Email</label><input class="input" name="email" value="admin@ekart.shop" required></div>
+    <div class="field"><label>Email</label><input class="input" name="email" value="admin@ikart.online" required></div>
     <div class="field"><label>Password</label><input class="input" type="password" name="password" value="admin123" required></div>
     <div id="loginErr" class="badge b-bad hidden" style="margin-bottom:12px">Invalid email or password</div>
     <button class="btn block">Sign in</button>
-    <p class="muted" style="font-size:12px;margin:16px 0 0;text-align:center">Demo login: admin@ekart.shop / admin123</p>
+    <p class="muted" style="font-size:12px;margin:16px 0 0;text-align:center">Demo login: admin@ikart.online / admin123</p>
   </form>
 </div>
 
@@ -102,7 +102,7 @@
   <div class="mobile-nav" id="mobileNav"></div>
   <div class="app">
     <aside>
-      <div class="logo">e<span>K</span>art</div>
+      <div class="logo">i<span>K</span>art</div>
       <div class="sub">Admin portal</div>
       <nav id="sideNav"></nav>
       <div class="foot">
@@ -135,7 +135,7 @@ const isAuthed = () => { try { return sessionStorage.getItem("ek_admin") === "1"
 $("#loginForm").onsubmit = (e) => {
   e.preventDefault();
   const f = Object.fromEntries(new FormData(e.target));
-  if (f.email.trim() === "admin@ekart.shop" && f.password === "admin123") {
+  if (f.email.trim() === "admin@ikart.online" && f.password === "admin123") {
     try { sessionStorage.setItem("ek_admin", "1"); } catch (er) {}
     boot();
   } else $("#loginErr").classList.remove("hidden");
@@ -172,7 +172,7 @@ function boot() {
   render();
 }
 // Keep admin in sync when an order is placed in the store tab
-window.addEventListener("storage", (e) => { if (e.key && e.key.startsWith("ekart_") && !root.innerHTML) render(); });
+window.addEventListener("storage", (e) => { if (e.key && e.key.startsWith("ikart_") && !root.innerHTML) render(); });
 
 /* ---------- Dashboard ---------- */
 function dashboard() {
@@ -318,7 +318,7 @@ function exportCSV() {
   const rows = [["Order", "Date", "Customer", "Phone", "City", "Total", "Payment", "Payment status", "Status", "AWB"]]
     .concat(EK.orders().map((o) => [o.id, EK.date(o.date), o.customer.name, o.customer.phone, o.customer.city, o.total, o.payment.method, o.payment.status, o.status, o.shipment ? o.shipment.awb : ""]));
   const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "ekart-orders.csv"; a.click();
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "ikart-orders.csv"; a.click();
 }
 
 /* ---------- Products ---------- */

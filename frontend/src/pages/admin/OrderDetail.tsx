@@ -210,7 +210,7 @@ export default function OrderDetail() {
       <div className="print-only">
         <div className="row between top">
           <div>
-            <div className="logo">eKart</div>
+            <div className="logo">iKart</div>
             <div className="small">{settings.support_phone} · {settings.support_email}</div>
           </div>
           <div className="right">

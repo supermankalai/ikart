@@ -14,7 +14,7 @@ from .shipping import ShippingError, get_provider, interpret_partner_status
 from .store_settings import get_store_settings
 from .utils import new_order_number
 
-log = logging.getLogger("ekart.orders")
+log = logging.getLogger("ikart.orders")
 
 DEFAULT_NOTES = {
     OrderStatus.PENDING_PAYMENT: "Waiting for payment",
@@ -106,7 +106,7 @@ def create_order(db: Session, user: User, data: OrderCreateIn) -> tuple[Order, P
 
 # ---------- Payment ----------
 def start_payment(order: Order, user: User) -> PaymentSession:
-    """Creates a fresh Cashfree order for this eKart order (one per attempt)."""
+    """Creates a fresh Cashfree order for this iKart order (one per attempt)."""
     if order.status != OrderStatus.PENDING_PAYMENT:
         raise HTTPException(400, "This order does not need payment")
     order.payment_attempts = (order.payment_attempts or 0) + 1

@@ -4,7 +4,7 @@ import type { Category, StoreSettings } from "../lib/types";
 import { useAuth } from "./auth";
 
 const DEFAULTS: StoreSettings = {
-  store_name: "eKart",
+  store_name: "iKart",
   tagline: "Premium everyday wear",
   announcement: "",
   support_phone: "",

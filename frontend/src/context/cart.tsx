@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { CartItem } from "../lib/types";
 
-const KEY = "ekart_cart";
+const KEY = "ikart_cart";
 
 interface CartState {
   items: CartItem[];

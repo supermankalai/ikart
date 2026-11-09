@@ -244,7 +244,7 @@ export default function Home() {
 
       <section className="section container">
         <div className="promise">
-          <div className="eyebrow">The eKart promise</div>
+          <div className="eyebrow">The iKart promise</div>
           <h2>Quality you can feel</h2>
           <p>
             Every piece is quality checked and packed by hand in our own store before it ships to you, with live tracking all

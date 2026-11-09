@@ -1,4 +1,4 @@
-const TOKEN_KEY = "ekart_token";
+const TOKEN_KEY = "ikart_token";
 
 export const tokenStore = {
   get(): string | null {
@@ -92,7 +92,7 @@ export async function api<T = unknown>(path: string, opts: Options = {}): Promis
   if (!res.ok) {
     if (res.status === 401 && token) {
       tokenStore.clear();
-      window.dispatchEvent(new Event("ekart:logout"));
+      window.dispatchEvent(new Event("ikart:logout"));
     }
     throw new ApiError(errorMessage(data, res.status), res.status);
   }
