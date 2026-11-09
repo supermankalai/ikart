@@ -6,8 +6,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import settings
-from ..models import Address, Coupon, Order, OrderEvent, OrderItem, OrderStatus, PaymentMethod, PaymentStatus, ProductVariant, User
-from ..schemas import OrderCreateIn, OrderSummary, PaymentSession, ShipIn
+from ..models import (
+    Address, Coupon, Order, OrderEvent, OrderItem, OrderStatus, OrderType, PaymentMethod, PaymentStatus, ProductVariant,
+    User, flow_for, is_custom,
+)
+from ..schemas import (
+    CustomDesignIn, CustomOrderIn, CustomQuoteOut, OrderCreateIn, OrderSummary, PaymentSession, ShipIn,
+)
 from . import cashfree
 from .pricing import build_quote
 from .shipping import ShippingError, get_provider, interpret_partner_status
@@ -24,7 +29,18 @@ DEFAULT_NOTES = {
     OrderStatus.OUT_FOR_DELIVERY: "Out for delivery",
     OrderStatus.DELIVERED: "Delivered. Enjoy your purchase!",
     OrderStatus.CANCELLED: "Order cancelled",
+    OrderStatus.CUSTOM_NEW: "Custom print order received",
+    OrderStatus.DESIGN_REVIEW: "Our team is reviewing your design",
+    OrderStatus.DESIGN_APPROVED: "Your design is approved for printing",
+    OrderStatus.PRINTING: "Your T-shirt is being printed",
+    OrderStatus.QUALITY_CHECK: "Print quality check in progress",
+    OrderStatus.READY_TO_SHIP: "Packed and ready to ship",
 }
+
+
+def first_status(order: Order) -> str:
+    """Status an order moves to once it is confirmed (COD placed, or online payment received)."""
+    return OrderStatus.CUSTOM_NEW if is_custom(order) else OrderStatus.PLACED
 
 
 def now() -> datetime:
@@ -62,6 +78,7 @@ def create_order(db: Session, user: User, data: OrderCreateIn) -> tuple[Order, P
     order = Order(
         order_number=_unique_order_number(db),
         user_id=user.id,
+        order_type=OrderType.STANDARD,
         payment_method=data.payment_method,
         payment_status=PaymentStatus.PENDING,
         status=OrderStatus.PLACED if data.payment_method == PaymentMethod.COD else OrderStatus.PENDING_PAYMENT,
@@ -104,6 +121,150 @@ def create_order(db: Session, user: User, data: OrderCreateIn) -> tuple[Order, P
     return order, session
 
 
+# ---------- Custom print orders ----------
+def custom_quote(
+    db: Session, variant_id: int, quantity: int, front: bool = True, back: bool = False, lock: bool = False,
+) -> tuple[CustomQuoteOut, ProductVariant]:
+    if not front and not back:
+        raise HTTPException(400, "Add a design to the front or the back")
+    stmt = select(ProductVariant).where(ProductVariant.id == variant_id)
+    if lock:
+        stmt = stmt.with_for_update()
+    v = db.scalar(stmt)
+    p = v.product if v else None
+    if not v or not p.is_active or not p.is_customizable or not p.category.is_active:
+        raise HTTPException(404, "This T-shirt is not available for custom printing")
+    if v.stock < quantity:
+        raise HTTPException(409, "Out of stock" if v.stock <= 0 else f"Only {v.stock} left in this size and colour")
+    s = get_store_settings(db)
+    front_price = s.custom_print_price if front else 0
+    back_price = s.custom_back_print_price if back else 0
+    unit = p.price + front_price + back_price
+    subtotal = unit * quantity
+    shipping = 0 if subtotal >= s.free_shipping_above else s.shipping_fee
+    total = subtotal + shipping
+    quote = CustomQuoteOut(
+        product_name=p.name, size=v.size, color=v.color, tshirt_price=p.price, front_print_price=front_price,
+        back_print_price=back_price, print_price=front_price + back_price, unit_price=unit, quantity=quantity, subtotal=subtotal, shipping_fee=shipping, total=total,
+        cod_enabled=s.custom_cod_enabled and s.cod_enabled and (s.cod_max_order == 0 or total <= s.cod_max_order),
+    )
+    return quote, v
+
+
+def create_custom_order(db: Session, user: User, data: CustomOrderIn) -> tuple[Order, PaymentSession | None]:
+    expire_stale_orders(db)
+    address = db.get(Address, data.address_id)
+    if not address or address.user_id != user.id:
+        raise HTTPException(404, "Delivery address not found")
+    printed = data.design.printed_sides
+    quote, v = custom_quote(db, data.variant_id, data.quantity, "front" in printed, "back" in printed, lock=True)
+    if data.payment_method == PaymentMethod.COD and not quote.cod_enabled:
+        raise HTTPException(400, "Cash on delivery is not available for custom print orders")
+
+    p = v.product
+    order = Order(
+        order_number=_unique_order_number(db),
+        user_id=user.id,
+        order_type=OrderType.CUSTOM,
+        payment_method=data.payment_method,
+        payment_status=PaymentStatus.PENDING,
+        status=OrderStatus.CUSTOM_NEW if data.payment_method == PaymentMethod.COD else OrderStatus.PENDING_PAYMENT,
+        subtotal=quote.subtotal,
+        discount=0,
+        shipping_fee=quote.shipping_fee,
+        total=quote.total,
+        notes=data.notes,
+        shipping_address={
+            "name": address.name, "phone": address.phone, "line1": address.line1, "line2": address.line2,
+            "city": address.city, "state": address.state, "pincode": address.pincode,
+        },
+    )
+    v.stock -= data.quantity
+    design = _design_dict(data.design)
+    design.update(
+        print_price=quote.print_price, front_print_price=quote.front_print_price,
+        back_print_price=quote.back_print_price, color_hex=data.design.color_hex or v.color_hex,
+        change_request=None, revisions=[],
+    )
+    order.items.append(OrderItem(
+        product_id=p.id, variant_id=v.id, product_name=f"Custom print · {p.name}", product_slug=p.slug,
+        size=v.size, color=v.color, image_url=design["preview_url"], unit_price=quote.unit_price,
+        quantity=data.quantity, custom_design=design,
+    ))
+    add_event(order, order.status,
+              "Custom print order placed · Cash on delivery" if data.payment_method == PaymentMethod.COD else None)
+    db.add(order)
+    db.flush()
+
+    session = None
+    if data.payment_method == PaymentMethod.ONLINE:
+        try:
+            session = start_payment(order, user)
+        except cashfree.CashfreeError as e:
+            db.rollback()
+            raise HTTPException(502, str(e))
+    db.commit()
+    db.refresh(order)
+    return order, session
+
+
+def _design_dict(d: CustomDesignIn) -> dict:
+    order = {"front": 0, "back": 1}
+    sides = sorted((s.model_dump() for s in d.sides), key=lambda s: order[s["side"]])
+    return {"version": 2, "sides": sides, "preview_url": sides[0]["preview_url"]}
+
+
+def _custom_item(order: Order) -> OrderItem:
+    item = next((i for i in order.items if i.custom_design), None)
+    if not is_custom(order) or not item:
+        raise HTTPException(400, "This is not a custom print order")
+    return item
+
+
+def _printed_sides(design: dict) -> set[str]:
+    if design.get("sides"):
+        return {s["side"] for s in design["sides"]}
+    return {design.get("side") or "front"}  # first version stored a single front design
+
+
+def request_design_change(db: Session, order: Order, message: str) -> Order:
+    """Admin asks the customer for a new image/design during design review."""
+    item = _custom_item(order)
+    if order.status not in (OrderStatus.CUSTOM_NEW, OrderStatus.DESIGN_REVIEW):
+        raise HTTPException(400, "A new design can only be requested before the design is approved")
+    item.custom_design = {**item.custom_design, "change_request": {"message": message.strip(), "requested_at": now().isoformat()}}
+    order.status = OrderStatus.DESIGN_REVIEW
+    add_event(order, OrderStatus.DESIGN_REVIEW, f"New design requested: {message.strip()}")
+    db.commit()
+    db.refresh(order)
+    return order
+
+
+def submit_new_design(db: Session, order: Order, design: CustomDesignIn) -> Order:
+    """Customer uploads a replacement design after the admin asked for one."""
+    item = _custom_item(order)
+    current = item.custom_design
+    if not current.get("change_request") or order.status not in (OrderStatus.CUSTOM_NEW, OrderStatus.DESIGN_REVIEW):
+        raise HTTPException(400, "This order is not waiting for a new design")
+    paid = _printed_sides(current)
+    if design.printed_sides != paid:
+        names = " and ".join(sorted(paid, key=lambda s: s != "front"))
+        raise HTTPException(400, f"Your order includes printing on the {names}. Please design exactly the same side(s).")
+    previous = {k: current.get(k) for k in ("sides", "preview_url", "artwork_url", "placement", "side") if current.get(k)}
+    previous["replaced_at"] = now().isoformat()
+    previous["request"] = current["change_request"].get("message")
+    new = {**current, **_design_dict(design), "change_request": None,
+           "revisions": [*(current.get("revisions") or []), previous]}
+    for k in ("artwork_url", "placement", "side", "artwork_width", "artwork_height"):
+        new.pop(k, None)  # old single-design fields
+    item.custom_design = new
+    item.image_url = new["preview_url"]
+    add_event(order, order.status, "Customer uploaded a new design")
+    db.commit()
+    db.refresh(order)
+    return order
+
+
 # ---------- Payment ----------
 def start_payment(order: Order, user: User) -> PaymentSession:
     """Creates a fresh Cashfree order for this iKart order (one per attempt)."""
@@ -136,8 +297,8 @@ def mark_paid(order: Order, payment_ref: str | None, payment_mode: str | None) -
     order.payment_mode = payment_mode
     order.paid_at = now()
     if order.status == OrderStatus.PENDING_PAYMENT:
-        order.status = OrderStatus.PLACED
-        add_event(order, OrderStatus.PLACED, "Payment received · Order confirmed")
+        order.status = first_status(order)
+        add_event(order, order.status, "Payment received · Order confirmed")
     else:
         # Payment arrived after the order was cancelled/expired: needs a manual refund.
         add_event(order, order.status, f"Payment {payment_ref} received after cancellation. Refund required.")
@@ -179,7 +340,7 @@ def cancel_order(db: Session, order: Order, reason: str | None, by_admin: bool) 
         raise HTTPException(400, "Shipped orders cannot be cancelled")
     if order.status == OrderStatus.CANCELLED:
         raise HTTPException(400, "Order is already cancelled")
-    if not by_admin and order.status not in (OrderStatus.PENDING_PAYMENT, OrderStatus.PLACED):
+    if not by_admin and order.status not in (OrderStatus.PENDING_PAYMENT, OrderStatus.PLACED, OrderStatus.CUSTOM_NEW):
         raise HTTPException(400, "This order is already being prepared. Please contact support to cancel.")
 
     # Make sure we don't cancel an order that was actually paid moments ago
@@ -248,7 +409,7 @@ def expire_stale_orders(db: Session) -> int:
 
 # ---------- Fulfilment (admin) ----------
 def set_status(db: Session, order: Order, status: str, note: str | None) -> Order:
-    flow = OrderStatus.FLOW
+    flow = flow_for(order)
     if status not in flow:
         raise HTTPException(400, "Invalid status")
     if order.status not in flow:
@@ -275,7 +436,10 @@ def set_status(db: Session, order: Order, status: str, note: str | None) -> Orde
 
 
 def ship_order(db: Session, order: Order, data: ShipIn) -> Order:
-    if order.status not in (OrderStatus.PLACED, OrderStatus.PACKED):
+    if is_custom(order):
+        if order.status != OrderStatus.READY_TO_SHIP:
+            raise HTTPException(400, "Custom orders can be shipped once they are marked Ready to ship")
+    elif order.status not in (OrderStatus.PLACED, OrderStatus.PACKED):
         raise HTTPException(400, "Only placed or packed orders can be shipped")
     if data.method == "shiprocket" and not settings.shiprocket_enabled:
         raise HTTPException(400, "Shiprocket is not set up. Add SHIPROCKET_EMAIL and SHIPROCKET_PASSWORD to backend/.env")
@@ -367,7 +531,7 @@ def apply_partner_update(db: Session, order: Order, raw_status: str, note: str |
 
 
 def apply_partner_status(db: Session, order: Order, status: str, note: str | None) -> None:
-    flow = OrderStatus.FLOW
+    flow = flow_for(order)
     if order.status not in flow or flow.index(status) <= flow.index(order.status):
         db.commit()
         return  # ignore duplicates / out-of-order webhooks
@@ -392,5 +556,5 @@ def order_summary(o: Order) -> OrderSummary:
         item_count=sum(i.quantity for i in o.items),
         first_image=next((i.image_url for i in o.items if i.image_url), None),
         customer_name=addr.get("name") or o.user.name, customer_phone=addr.get("phone") or o.user.phone,
-        city=addr.get("city"), awb=o.awb, payment_ref=o.payment_ref,
+        city=addr.get("city"), awb=o.awb, payment_ref=o.payment_ref, order_type=o.order_type or OrderType.STANDARD,
     )

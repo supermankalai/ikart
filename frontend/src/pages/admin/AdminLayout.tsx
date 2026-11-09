@@ -9,6 +9,7 @@ import type { Dashboard } from "../../lib/types";
 const NAV = [
   { to: "/admin", label: "Dashboard", icon: "grid", end: true },
   { to: "/admin/orders", label: "Orders", icon: "receipt" },
+  { to: "/admin/custom-orders", label: "Custom orders", icon: "image" },
   { to: "/admin/products", label: "Products", icon: "box" },
   { to: "/admin/categories", label: "Categories", icon: "tag" },
   { to: "/admin/customers", label: "Customers", icon: "users" },
@@ -21,12 +22,13 @@ export default function AdminLayout() {
   const loc = useLocation();
   const nav = useNavigate();
   const [toShip, setToShip] = useState(0);
+  const [customNew, setCustomNew] = useState(0);
   const [menu, setMenu] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   useTableLabels(mainRef, !!user?.is_admin);
 
   useEffect(() => {
-    if (user?.is_admin) api<Dashboard>("/api/admin/dashboard").then((d) => setToShip(d.to_ship)).catch(() => {});
+    if (user?.is_admin) api<Dashboard>("/api/admin/dashboard").then((d) => { setToShip(d.to_ship); setCustomNew(d.custom_to_review); }).catch(() => {});
   }, [user, loc.pathname]);
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -80,6 +82,7 @@ export default function AdminLayout() {
                 <Icon name={n.icon} className="icon sm" />
                 {n.label}
                 {n.to === "/admin/orders" && toShip > 0 && <span className="n">{toShip}</span>}
+                {n.to === "/admin/custom-orders" && customNew > 0 && <span className="n">{customNew}</span>}
               </NavLink>
             ))}
           </nav>

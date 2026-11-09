@@ -112,7 +112,7 @@ export default function Checkout() {
                 initial={{ name: user.name, phone: user.phone || "", is_default: addresses.length === 0 }}
                 onSubmit={saveAddress}
                 onCancel={addresses.length ? () => setAdding(false) : undefined}
-                submitLabel="Deliver here"
+                submitLabel="Save & Deliver here"
               />
             ) : (
               <div className="addr-grid">

@@ -10,7 +10,7 @@ import { useAuth } from "../../context/auth";
 import { useStore } from "../../context/store";
 import { useToast } from "../../context/toast";
 import { api } from "../../lib/api";
-import { fmtDate, money } from "../../lib/format";
+import { fmtDate, money, SIDE_LABEL, designSides } from "../../lib/format";
 import type { Address, AddressInput, Order, OrderSummary, Page, PaymentSession, ProductCard as P, User } from "../../lib/types";
 
 export function AccountLayout() {
@@ -85,7 +85,7 @@ export function MyOrderDetail() {
   if (err) return <Empty title="Order not found">{err}</Empty>;
   if (!order) return <Loader />;
   const a = order.shipping_address;
-  const canCancel = order.status === "PENDING_PAYMENT" || order.status === "PLACED";
+  const canCancel = order.status === "PENDING_PAYMENT" || order.status === "PLACED" || order.status === "CUSTOM_NEW";
 
   const cancel = async () => {
     setBusy(true);
@@ -120,6 +120,15 @@ export function MyOrderDetail() {
         <div className="row"><StatusBadge status={order.status} /><PayBadge status={order.payment_status} /></div>
       </div>
 
+      {order.items.some((i) => i.custom_design?.change_request) && (
+        <div className="note-box warn mb-16 row between wrap">
+          <span>
+            <b>We need a new design for this order.</b> {order.items.find((i) => i.custom_design?.change_request)!.custom_design!.change_request!.message}
+          </span>
+          <Link className="btn sm" to={`/redesign/${order.order_number}`}>Upload new design</Link>
+        </div>
+      )}
+
       {order.status === "PENDING_PAYMENT" && (
         <div className="note-box warn mb-16 row between wrap">
           <span>Payment is pending for this order.</span>
@@ -146,6 +155,13 @@ export function MyOrderDetail() {
               <div className="info">
                 {i.product_slug ? <Link to={`/product/${i.product_slug}`} className="title">{i.product_name}</Link> : <span className="title">{i.product_name}</span>}
                 <div className="meta">{i.color} · Size {i.size} · Qty {i.quantity}</div>
+                {i.custom_design && (
+                  <div className="xs mt-8 row wrap">
+                    {designSides(i.custom_design).map((s) => (
+                      <a key={s.side} className="link" href={s.preview_url} target="_blank" rel="noreferrer">View {SIDE_LABEL[s.side].toLowerCase()} design ↗</a>
+                    ))}
+                  </div>
+                )}
               </div>
               <b>{money(i.unit_price * i.quantity)}</b>
             </div>

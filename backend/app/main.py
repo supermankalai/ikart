@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from . import models  # noqa: F401  (register tables)
 from .config import settings
 from .database import init_db
-from .routers import account, admin_catalog, admin_ops, auth, catalog, orders
+from .routers import account, admin_catalog, admin_ops, auth, catalog, custom, orders
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -35,7 +35,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for r in (auth.router, catalog.router, account.router, orders.router, admin_catalog.router, admin_ops.router):
+for r in (auth.router, catalog.router, account.router, orders.router, custom.router, admin_catalog.router,
+          admin_ops.router):
     app.include_router(r)
 
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")

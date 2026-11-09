@@ -35,7 +35,7 @@ function SearchBox({ onDone }: { onDone?(): void }) {
 }
 
 function MobileMenu({ onClose }: { onClose(): void }) {
-  const { categories, wishlist } = useStore();
+  const { categories, settings, wishlist } = useStore();
   const { user } = useAuth();
   const loc = useLocation();
   const onCategory = loc.pathname.startsWith("/category/");
@@ -69,6 +69,13 @@ function MobileMenu({ onClose }: { onClose(): void }) {
             <span>Shop all</span>
             <Icon name="chevron" className="icon mm-arrow" />
           </NavLink>
+          {settings.custom_print_enabled && (
+            <NavLink to="/customize" className="mm-row">
+              <Icon name="image" />
+              <span>Design your own T-shirt</span>
+              <Icon name="chevron" className="icon mm-arrow" />
+            </NavLink>
+          )}
 
           {categories.length > 0 && (
             <>
@@ -197,6 +204,7 @@ function Header() {
             <NavLink to="/shop" end>
               Shop all
             </NavLink>
+            {settings.custom_print_enabled && <NavLink to="/customize">Design your own</NavLink>}
             {categories.slice(0, NAV_LIMIT).map((c) => (
               <NavLink key={c.id} to={`/category/${c.slug}`} title={c.name}>
                 {c.name}

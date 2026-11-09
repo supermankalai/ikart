@@ -11,9 +11,10 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..database import get_db
 from ..deps import require_admin
-from ..models import Coupon, Order, OrderItem, OrderStatus, PaymentStatus, Product, ProductVariant, User
+from ..models import Coupon, Order, OrderItem, OrderStatus, OrderType, PaymentStatus, Product, ProductVariant, User
 from ..schemas import (
-    AdminSettingsOut, CancelIn, CouponIn, CouponOut, CourierQuoteOut, CustomerOut, CustomerPage, IntegrationStatus,
+    AdminSettingsOut, CancelIn, CouponIn, CouponOut, CourierQuoteOut, CustomerOut, CustomerPage, DesignRequestIn,
+    IntegrationStatus,
     OrderAdminOut, OrderPage, ShipIn, StatusUpdateIn, StoreSettings,
 )
 from ..services import orders as svc
@@ -23,6 +24,8 @@ from ..services.store_settings import get_store_settings, save_store_settings
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
 INACTIVE = (OrderStatus.CANCELLED, OrderStatus.PENDING_PAYMENT)
+IS_CUSTOM = Order.order_type == OrderType.CUSTOM
+IS_STANDARD = or_(Order.order_type.is_(None), Order.order_type != OrderType.CUSTOM)
 
 
 def _aware(dt: datetime) -> datetime:
@@ -50,7 +53,10 @@ def dashboard(db: Session = Depends(get_db)):
 
     collected = db.scalar(select(func.coalesce(func.sum(Order.total), 0)).where(Order.payment_status == PaymentStatus.PAID)) or 0
     gross = db.scalar(select(func.coalesce(func.sum(Order.total), 0)).where(Order.status.notin_(INACTIVE))) or 0
-    count_by_status = dict(db.execute(select(Order.status, func.count(Order.id)).group_by(Order.status)).all())
+    count_by_status = dict(db.execute(
+        select(Order.status, func.count(Order.id)).where(IS_STANDARD).group_by(Order.status)).all())
+    custom_counts = dict(db.execute(
+        select(Order.status, func.count(Order.id)).where(IS_CUSTOM).group_by(Order.status)).all())
 
     top = db.execute(
         select(OrderItem.product_name, func.sum(OrderItem.quantity).label("qty"),
@@ -74,6 +80,9 @@ def dashboard(db: Session = Depends(get_db)):
         "in_transit": count_by_status.get(OrderStatus.SHIPPED, 0) + count_by_status.get(OrderStatus.OUT_FOR_DELIVERY, 0),
         "pending_payment": count_by_status.get(OrderStatus.PENDING_PAYMENT, 0),
         "status_counts": count_by_status,
+        "custom_status_counts": custom_counts,
+        # Custom orders waiting for the admin to start (new + in design review)
+        "custom_to_review": custom_counts.get(OrderStatus.CUSTOM_NEW, 0) + custom_counts.get(OrderStatus.DESIGN_REVIEW, 0),
         "customers": db.scalar(select(func.count(User.id)).where(User.is_admin.is_(False))) or 0,
         "products": db.scalar(select(func.count(Product.id))) or 0,
         "sales_by_day": [{"date": d.isoformat(), "total": by_day[d]} for d in sorted(by_day)],
@@ -84,8 +93,12 @@ def dashboard(db: Session = Depends(get_db)):
 
 
 # ---------- Orders ----------
-def _order_query(status, payment_status, payment_method, q, date_from, date_to):
+def _order_query(status, payment_status, payment_method, q, date_from, date_to, order_type=None):
     stmt = select(Order).join(User)
+    if order_type == OrderType.CUSTOM:
+        stmt = stmt.where(IS_CUSTOM)
+    elif order_type == OrderType.STANDARD:
+        stmt = stmt.where(IS_STANDARD)
     if status:
         stmt = stmt.where(Order.status == status)
     if payment_status:
@@ -111,12 +124,13 @@ def list_orders(
     q: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    order_type: str | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     svc.expire_stale_orders(db)
-    stmt = _order_query(status, payment_status, payment_method, q, date_from, date_to)
+    stmt = _order_query(status, payment_status, payment_method, q, date_from, date_to, order_type)
     total = db.scalar(select(func.count()).select_from(stmt.with_only_columns(Order.id).subquery())) or 0
     rows = db.scalars(stmt.order_by(Order.created_at.desc()).offset((page - 1) * page_size).limit(page_size)).all()
     return OrderPage(items=[svc.order_summary(o) for o in rows], total=total, page=page, page_size=page_size)
@@ -130,24 +144,36 @@ def export_orders(
     q: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    order_type: str | None = None,
     db: Session = Depends(get_db),
 ):
-    rows = db.scalars(_order_query(status, payment_status, payment_method, q, date_from, date_to)
+    rows = db.scalars(_order_query(status, payment_status, payment_method, q, date_from, date_to, order_type)
                       .order_by(Order.created_at.desc())).all()
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow(["Order", "Date", "Customer", "Phone", "Email", "Address", "City", "State", "Pincode", "Items",
                 "Subtotal", "Discount", "Shipping", "Total", "Payment method", "Payment status", "Payment ref",
-                "Status", "Partner", "AWB"])
+                "Status", "Partner", "AWB", "Order type", "Artwork"])
     for o in rows:
         a = o.shipping_address or {}
         items = "; ".join(f"{i.product_name} ({i.size}/{i.color}) x{i.quantity}" for i in o.items)
+        artwork = " ".join(f"{settings.backend_url.rstrip('/')}{url}" for i in o.items for url in _design_files(i.custom_design))
         w.writerow([o.order_number, _aware(o.created_at).strftime("%Y-%m-%d %H:%M"), a.get("name"), a.get("phone"),
                     o.user.email, " ".join(filter(None, [a.get("line1"), a.get("line2")])), a.get("city"),
                     a.get("state"), a.get("pincode"), items, o.subtotal, o.discount, o.shipping_fee, o.total,
-                    o.payment_method, o.payment_status, o.payment_ref, o.status, o.shipping_partner, o.awb])
+                    o.payment_method, o.payment_status, o.payment_ref, o.status, o.shipping_partner, o.awb,
+                    o.order_type or OrderType.STANDARD, artwork])
     return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv",
                              headers={"Content-Disposition": "attachment; filename=ikart-orders.csv"})
+
+
+def _design_files(design: dict | None) -> list[str]:
+    """Print files of a custom design: uploaded images and rendered text, for every printed side."""
+    if not design:
+        return []
+    if design.get("sides"):
+        return [layer["url"] for side in design["sides"] for layer in side.get("layers", []) if layer.get("url")]
+    return [design["artwork_url"]] if design.get("artwork_url") else []
 
 
 def _get_order(db: Session, number: str) -> Order:
@@ -200,6 +226,12 @@ def get_label(number: str, db: Session = Depends(get_db)):
 @router.post("/orders/{number}/sync-tracking", response_model=OrderAdminOut)
 def sync_tracking(number: str, db: Session = Depends(get_db)):
     return svc.sync_partner_tracking(db, _get_order(db, number))
+
+
+@router.post("/orders/{number}/design-request", response_model=OrderAdminOut)
+def design_request(number: str, data: DesignRequestIn, db: Session = Depends(get_db)):
+    """Ask the customer to upload a new design (custom print orders, before approval)."""
+    return svc.request_design_change(db, _get_order(db, number), data.message)
 
 
 @router.post("/orders/{number}/cancel", response_model=OrderAdminOut)

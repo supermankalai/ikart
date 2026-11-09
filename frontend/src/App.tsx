@@ -14,10 +14,12 @@ import { AccountLayout, Addresses, MyOrderDetail, MyOrders, Profile, Wishlist } 
 import { Login, Register } from "./pages/store/Auth";
 import Cart from "./pages/store/Cart";
 import Checkout from "./pages/store/Checkout";
+import Customize from "./pages/store/Customize";
 import Home from "./pages/store/Home";
 import InfoPage, { NotFound } from "./pages/store/Info";
 import OrderStatus from "./pages/store/OrderStatus";
 import Product from "./pages/store/Product";
+import Redesign from "./pages/store/Redesign";
 import Shop from "./pages/store/Shop";
 
 export default function App() {
@@ -30,6 +32,8 @@ export default function App() {
         <Route path="product/:slug" element={<Product />} />
         <Route path="cart" element={<Cart />} />
         <Route path="checkout" element={<Checkout />} />
+        <Route path="customize" element={<Customize />} />
+        <Route path="redesign/:number" element={<Redesign />} />
         <Route path="order/:number/status" element={<OrderStatus />} />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
@@ -52,7 +56,8 @@ export default function App() {
 
       <Route path="admin" element={<AdminLayout />}>
         <Route index element={<Dashboard />} />
-        <Route path="orders" element={<AdminOrders />} />
+        <Route path="orders" element={<AdminOrders key="standard" kind="STANDARD" />} />
+        <Route path="custom-orders" element={<AdminOrders key="custom" kind="CUSTOM" />} />
         <Route path="orders/:number" element={<AdminOrderDetail />} />
         <Route path="products" element={<AdminProducts />} />
         <Route path="products/new" element={<ProductEditor />} />

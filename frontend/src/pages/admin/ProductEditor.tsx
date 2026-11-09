@@ -41,6 +41,7 @@ export default function ProductEditor() {
     details: "",
     is_active: true,
     is_featured: false,
+    is_customizable: false,
   });
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(0);
@@ -72,6 +73,7 @@ export default function ProductEditor() {
           details: p.details || "",
           is_active: p.is_active,
           is_featured: p.is_featured,
+          is_customizable: !!p.is_customizable,
         });
         setSlug(p.slug);
         setImages(p.images);
@@ -332,6 +334,11 @@ export default function ProductEditor() {
               <span className="switch"><input type="checkbox" checked={f.is_featured} onChange={set("is_featured")} /><i /></span>
               Featured on home page
             </label>
+            <label className="check mt-16" style={{ display: "flex" }}>
+              <span className="switch"><input type="checkbox" checked={f.is_customizable} onChange={set("is_customizable")} /><i /></span>
+              Available for custom printing
+            </label>
+            <div className="xs muted" style={{ marginTop: 4 }}>Shows this T-shirt in "Design your own". Use a plain T-shirt and set a colour code on each variant.</div>
           </div>
           <div className="card">
             <h3>Category</h3>

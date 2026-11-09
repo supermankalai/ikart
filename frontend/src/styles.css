@@ -783,3 +783,53 @@ tbody tr.click:hover { background: #fcfaf5; }
   .admin-main { padding: 0; }
   .card { border: 0; padding: 0; }
 }
+
+/* ============ Custom print (Design your own T-shirt) ============ */
+.custom-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.custom-stage { position: sticky; top: calc(var(--header-h) + 16px); }
+.custom-canvas { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+.tee-mockup { display: block; width: 100%; max-width: 520px; height: auto; margin: 0 auto; user-select: none; }
+.custom-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.custom-tools input[type="range"] { flex: 1; min-width: 140px; accent-color: var(--gold); }
+.custom-products { display: grid; gap: 10px; }
+.custom-product { display: flex; align-items: center; gap: 12px; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 8px 12px; transition: border-color 0.15s; }
+.custom-product > span { display: flex; flex-direction: column; gap: 2px; }
+.custom-product:hover { border-color: var(--ink); }
+.custom-product.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+.custom-drop { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; padding: 26px 16px; border: 1.5px dashed var(--line); border-radius: 14px; background: var(--bg); text-align: center; transition: border-color 0.15s, background 0.15s; }
+.custom-drop .icon, .custom-drop svg { width: 28px; height: 28px; color: var(--gold); }
+.custom-drop:hover, .custom-drop.over { border-color: var(--gold); background: var(--surface); }
+.custom-thumb { width: 56px; height: 56px; object-fit: contain; border-radius: 10px; border: 1px solid var(--line); background: repeating-conic-gradient(#eee 0 25%, #fff 0 50%) 50% / 12px 12px; }
+.custom-final { background: #f3f0ea; border-radius: 14px; overflow: hidden; }
+.custom-final img { display: block; width: 100%; max-width: 480px; margin: 0 auto; }
+.design-box { display: grid; grid-template-columns: 180px 1fr; gap: 16px; align-items: start; }
+.design-box img { width: 100%; border-radius: 12px; border: 1px solid var(--line); background: #f3f0ea; }
+@media (max-width: 860px) {
+  .custom-layout { grid-template-columns: 1fr; }
+  .custom-stage { position: static; }
+  .design-box { grid-template-columns: 1fr; }
+}
+.side-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.side-tabs button { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 7px 16px; font-size: 13px; font-weight: 500; }
+.side-tabs button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.side-tabs button.on .muted { color: rgba(255, 255, 255, 0.7); }
+.side-tabs .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
+.custom-tools .tool { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 150px; font-size: 12px; color: var(--muted); }
+.custom-tools .tool input { width: 100%; accent-color: var(--gold); }
+.design-part { padding: 14px 0; border-top: 1px solid var(--line); }
+.design-part:first-of-type { border-top: 0; padding-top: 8px; }
+.design-pick { gap: 12px; background: none; border: 1px solid transparent; border-radius: 12px; padding: 4px; width: 100%; text-align: left; }
+.design-pick.on { border-color: var(--gold); }
+.color-swatch.sm { width: 30px; height: 30px; }
+.color-swatch.custom { background: conic-gradient(#f43f5e, #f59e0b, #84cc16, #06b6d4, #6366f1, #d946ef, #f43f5e); cursor: pointer; overflow: hidden; }
+.color-swatch.custom input { opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.custom-finals { display: grid; gap: 12px; }
+.custom-finals.n2 { grid-template-columns: 1fr 1fr; }
+.custom-final { margin: 0; }
+.custom-final figcaption { text-align: center; font-size: 12px; color: var(--muted); padding: 6px 0; }
+.design-side { margin-top: 18px; }
+.layer-info { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.layer-info .kv { margin-top: 6px; }
+.revision { width: 180px; }
+.revision img { width: 84px; border-radius: 8px; border: 1px solid var(--line); background: #f3f0ea; }
+@media (max-width: 560px) { .custom-finals.n2 { grid-template-columns: 1fr; } }

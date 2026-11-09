@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
     upload_dir: str = "uploads"
     max_upload_mb: int = 5
+    max_custom_upload_mb: int = 15  # customer artwork for custom-printed T-shirts (high resolution prints better)
 
     admin_email: str = "admin@ikart.online"
     admin_password: str = "admin123"

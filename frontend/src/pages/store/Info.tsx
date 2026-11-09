@@ -73,6 +73,7 @@ export default function InfoPage({ page }: { page: PageKey }) {
           <p>We may cancel an order if the item is out of stock, the delivery address is not serviceable, or there is a pricing error. In that case you will receive a full refund.</p>
           <h2>Returns</h2>
           <p>You can request a return within {s.return_days} days of delivery. Items must be unused, unwashed, and returned with original tags and packaging. Innerwear and items bought on clearance sale are not returnable for hygiene reasons.</p>
+          <p>Custom printed T-shirts are made to order with your design, so they can't be returned or exchanged unless they arrive damaged, defective or misprinted. A custom order can be cancelled for a full refund until our team starts reviewing the design.</p>
           <p>If you receive a damaged, defective or wrong item, contact us within 48 hours of delivery with photos of the product and packaging. We will arrange a free pickup and a replacement or full refund.</p>
           <h2>Refunds</h2>
           <ul>

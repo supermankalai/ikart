@@ -77,6 +77,21 @@ export default function Settings() {
             <span className="switch"><input type="checkbox" checked={f.cod_enabled} onChange={set("cod_enabled")} /><i /></span>
             Offer cash on delivery
           </label>
+
+          <div className="section-title mt-16">Custom printed T-shirts</div>
+          <label className="check" style={{ display: "flex" }}>
+            <span className="switch"><input type="checkbox" checked={f.custom_print_enabled} onChange={set("custom_print_enabled")} /><i /></span>
+            Show "Design your own T-shirt" in the store
+          </label>
+          <div className="grid-2 mt-8">
+            <div className="field"><label htmlFor="s-cpp">Front print charge (₹)</label><input id="s-cpp" className="input" type="number" min={0} value={f.custom_print_price} onChange={set("custom_print_price")} /></div>
+            <div className="field"><label htmlFor="s-cbp">Back print charge (₹)</label><input id="s-cbp" className="input" type="number" min={0} value={f.custom_back_print_price} onChange={set("custom_back_print_price")} /></div>
+          </div>
+          <label className="check" style={{ display: "flex" }}>
+            <span className="switch"><input type="checkbox" checked={f.custom_cod_enabled} onChange={set("custom_cod_enabled")} /><i /></span>
+            Allow cash on delivery for custom orders
+          </label>
+          <div className="xs muted" style={{ marginTop: 4 }}>Mark which T-shirts can be customised in Products → edit → "Available for custom printing".</div>
         </div>
 
         <div className="card">

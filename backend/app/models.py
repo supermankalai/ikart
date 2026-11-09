@@ -20,8 +20,24 @@ class OrderStatus:
     DELIVERED = "DELIVERED"
     CANCELLED = "CANCELLED"
 
+    # Custom-printed T-shirt orders follow their own production workflow
+    CUSTOM_NEW = "CUSTOM_NEW"
+    DESIGN_REVIEW = "DESIGN_REVIEW"
+    DESIGN_APPROVED = "DESIGN_APPROVED"
+    PRINTING = "PRINTING"
+    QUALITY_CHECK = "QUALITY_CHECK"
+    READY_TO_SHIP = "READY_TO_SHIP"
+
     FLOW = [PLACED, PACKED, SHIPPED, OUT_FOR_DELIVERY, DELIVERED]
-    ALL = [PENDING_PAYMENT, *FLOW, CANCELLED]
+    CUSTOM_FLOW = [CUSTOM_NEW, DESIGN_REVIEW, DESIGN_APPROVED, PRINTING, QUALITY_CHECK, READY_TO_SHIP,
+                   SHIPPED, OUT_FOR_DELIVERY, DELIVERED]
+    ALL = [PENDING_PAYMENT, PLACED, PACKED, CUSTOM_NEW, DESIGN_REVIEW, DESIGN_APPROVED, PRINTING, QUALITY_CHECK,
+           READY_TO_SHIP, SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELLED]
+
+
+class OrderType:
+    STANDARD = "STANDARD"
+    CUSTOM = "CUSTOM"  # custom-printed T-shirt (customer-uploaded artwork)
 
 
 class PaymentStatus:
@@ -97,6 +113,8 @@ class Product(Base):
     mrp: Mapped[int] = mapped_column(Integer)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Offered in the "Design your own T-shirt" tool (nullable so existing databases get the column automatically)
+    is_customizable: Mapped[bool | None] = mapped_column(Boolean, default=False, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
@@ -172,6 +190,8 @@ class Order(Base):
     order_number: Mapped[str] = mapped_column(String(30), unique=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     status: Mapped[str] = mapped_column(String(30), index=True)
+    # NULL / "STANDARD" = normal order, "CUSTOM" = custom-printed T-shirt order (managed separately)
+    order_type: Mapped[str | None] = mapped_column(String(20), index=True, nullable=True)
     payment_method: Mapped[str] = mapped_column(String(10))
     payment_status: Mapped[str] = mapped_column(String(20), index=True)
 
@@ -230,8 +250,18 @@ class OrderItem(Base):
     image_url: Mapped[str | None] = mapped_column(String(500))
     unit_price: Mapped[int] = mapped_column(Integer)
     quantity: Mapped[int] = mapped_column(Integer)
+    # Custom print orders only: {"artwork_url", "preview_url", "placement": {x, y, w, h}, "side", "print_price"}
+    custom_design: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     order: Mapped[Order] = relationship(back_populates="items")
+
+
+def is_custom(order: "Order") -> bool:
+    return order.order_type == OrderType.CUSTOM
+
+
+def flow_for(order: "Order") -> list[str]:
+    return OrderStatus.CUSTOM_FLOW if is_custom(order) else OrderStatus.FLOW
 
 
 class OrderEvent(Base):

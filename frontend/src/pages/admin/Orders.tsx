@@ -5,12 +5,19 @@ import { Empty, Img, Loader, Pager, PayBadge, StatusBadge } from "../../componen
 import { useToast } from "../../context/toast";
 import { api, downloadFile } from "../../lib/api";
 import { STATUS_LABEL, fmtDateTime, money } from "../../lib/format";
-import type { Dashboard, OrderStatus, OrderSummary, Page } from "../../lib/types";
+import type { Dashboard, OrderStatus, OrderSummary, OrderType, Page } from "../../lib/types";
 import { AdminTop } from "./AdminLayout";
 
 const TABS: (OrderStatus | "")[] = ["", "PLACED", "PACKED", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "PENDING_PAYMENT", "CANCELLED"];
+const CUSTOM_TABS: (OrderStatus | "")[] = [
+  "", "CUSTOM_NEW", "DESIGN_REVIEW", "DESIGN_APPROVED", "PRINTING", "QUALITY_CHECK", "READY_TO_SHIP",
+  "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "PENDING_PAYMENT", "CANCELLED",
+];
 
-export default function Orders() {
+/** Order list. kind="CUSTOM" shows custom-printed T-shirt orders, which are managed separately. */
+export default function Orders({ kind = "STANDARD" }: { kind?: OrderType }) {
+  const custom = kind === "CUSTOM";
+  const tabs = custom ? CUSTOM_TABS : TABS;
   const [sp, setSp] = useSearchParams();
   const nav = useNavigate();
   const toast = useToast();
@@ -25,12 +32,13 @@ export default function Orders() {
     q: sp.get("q") || undefined,
     date_from: sp.get("date_from") || undefined,
     date_to: sp.get("date_to") || undefined,
+    order_type: kind,
   };
 
   useEffect(() => {
     setData(null);
     api<Page<OrderSummary>>("/api/admin/orders", { query: { ...filters, page: sp.get("page") || 1 } }).then(setData);
-    api<Dashboard>("/api/admin/dashboard").then((d) => setCounts(d.status_counts)).catch(() => {});
+    api<Dashboard>("/api/admin/dashboard").then((d) => setCounts(custom ? d.custom_status_counts : d.status_counts)).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp.toString()]);
 
@@ -52,7 +60,7 @@ export default function Orders() {
 
   const exportCsv = async () => {
     try {
-      await downloadFile("/api/admin/orders/export", filters, `ikart-orders-${new Date().toISOString().slice(0, 10)}.csv`);
+      await downloadFile("/api/admin/orders/export", filters, `ikart-${custom ? "custom-" : ""}orders-${new Date().toISOString().slice(0, 10)}.csv`);
     } catch (e) {
       toast((e as Error).message, "error");
     }
@@ -60,11 +68,11 @@ export default function Orders() {
 
   return (
     <>
-      <AdminTop title="Orders">
+      <AdminTop title={custom ? "Custom print orders" : "Orders"}>
         <button className="btn light sm" onClick={exportCsv}><Icon name="download" className="icon sm" /> Export CSV</button>
       </AdminTop>
       <div className="tabs">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button key={t || "all"} className={(sp.get("status") || "") === t ? "on" : ""} onClick={() => update({ status: t || null })}>
             {t ? STATUS_LABEL[t] : "All"}
             <span className="c">{t ? counts[t] || 0 : total}</span>
@@ -92,7 +100,7 @@ export default function Orders() {
       {!data ? (
         <Loader />
       ) : !data.items.length ? (
-        <div className="card"><Empty title="No orders found" icon="receipt" /></div>
+        <div className="card"><Empty title={custom ? "No custom print orders yet" : "No orders found"} icon="receipt" /></div>
       ) : (
         <>
           <div className="table-wrap">

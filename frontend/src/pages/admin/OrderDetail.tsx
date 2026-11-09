@@ -6,9 +6,10 @@ import { Img, Loader, Modal, PayBadge, StatusBadge } from "../../components/ui";
 import { useStore } from "../../context/store";
 import { useToast } from "../../context/toast";
 import { api } from "../../lib/api";
-import { FLOW, STATUS_LABEL, fmtDate, fmtDateTime, money } from "../../lib/format";
+import { STATUS_LABEL, flowFor, fmtDate, fmtDateTime, isCustom, money } from "../../lib/format";
 import type { AdminSettings, CourierQuote, IntegrationStatus, OrderAdmin, OrderStatus } from "../../lib/types";
 import { AdminTop } from "./AdminLayout";
+import CustomDesignCard from "./CustomDesignCard";
 
 export default function OrderDetail() {
   const { number } = useParams();
@@ -45,16 +46,21 @@ export default function OrderDetail() {
   const setStatus = (status: OrderStatus) =>
     act(() => api<OrderAdmin>(`/api/admin/orders/${o.order_number}/status`, { body: { status } }), `Marked as ${STATUS_LABEL[status].toLowerCase()}`);
 
-  const idx = FLOW.indexOf(o.status);
-  const next = idx >= 0 && idx < FLOW.length - 1 ? FLOW[idx + 1] : null;
+  const custom = isCustom(o);
+  const flow = flowFor(o);
+  const idx = flow.indexOf(o.status);
+  const next = idx >= 0 && idx < flow.length - 1 ? flow[idx + 1] : null;
+  // Custom orders: production steps the admin moves through one by one before shipping
+  const productionNext = custom && next && ["DESIGN_REVIEW", "DESIGN_APPROVED", "PRINTING", "QUALITY_CHECK", "READY_TO_SHIP"].includes(next) ? next : null;
+  const canShip = custom ? o.status === "READY_TO_SHIP" : o.status === "PLACED" || o.status === "PACKED";
   const a = o.shipping_address;
   const canCancel = !["SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"].includes(o.status);
 
   return (
     <>
       <div className="no-print">
-        <Link to="/admin/orders" className="link small">← Orders</Link>
-        <AdminTop title={`Order #${o.order_number}`}>
+        <Link to={custom ? "/admin/custom-orders" : "/admin/orders"} className="link small">← {custom ? "Custom orders" : "Orders"}</Link>
+        <AdminTop title={`${custom ? "Custom order" : "Order"} #${o.order_number}`}>
           <button className="btn light sm" onClick={() => window.print()}><Icon name="print" className="icon sm" /> Print invoice</button>
         </AdminTop>
         <div className="row wrap mb-16" style={{ marginTop: -12 }}>
@@ -70,6 +76,14 @@ export default function OrderDetail() {
             <div className="small">
               {o.status === "PENDING_PAYMENT" && "Waiting for the customer to complete payment."}
               {o.status === "PLACED" && "Pack the items, then mark the order as packed."}
+              {o.status === "CUSTOM_NEW" && "New custom print order. Download the artwork and start the design review."}
+              {o.status === "DESIGN_REVIEW" && "Check the artwork quality and placement. Approve it, or contact the customer (or cancel with a refund) if it can't be printed."}
+              {o.status === "DESIGN_APPROVED" && "Design approved. Start printing."}
+              {o.status === "PRINTING" && "Printing in progress. Move to quality check when done."}
+              {o.status === "QUALITY_CHECK" && "Check the print, then pack it and mark it ready to ship."}
+              {o.status === "READY_TO_SHIP" && (integrations?.shiprocket_configured
+                ? "Create the shipment: Shiprocket books the courier and pickup, then print the label."
+                : "Book the pickup with your delivery partner, then enter the AWB number.")}
               {o.status === "PACKED" && (integrations?.shiprocket_configured
                 ? "Create the shipment: Shiprocket books the courier and pickup, then print the label."
                 : "Book the pickup with your delivery partner, then enter the AWB number.")}
@@ -88,7 +102,12 @@ export default function OrderDetail() {
               </button>
             )}
             {next === "PACKED" && <button className="btn" disabled={busy} onClick={() => setStatus("PACKED")}>Mark as packed</button>}
-            {(o.status === "PLACED" || o.status === "PACKED") && (
+            {productionNext && (
+              <button className="btn" disabled={busy} onClick={() => setStatus(productionNext)}>
+                {productionNext === "DESIGN_APPROVED" ? "Approve design" : `Move to ${STATUS_LABEL[productionNext].toLowerCase()}`}
+              </button>
+            )}
+            {canShip && (
               <button className={`btn ${next === "SHIPPED" ? "gold" : "light"}`} disabled={busy} onClick={() => setShipOpen(true)}>
                 <Icon name="truck" className="icon sm" /> Create shipment
               </button>
@@ -103,6 +122,9 @@ export default function OrderDetail() {
 
         <div className="od-grid">
           <div className="stack">
+            {o.items.filter((i) => i.custom_design).map((i, k) => (
+              <CustomDesignCard key={`design-${k}`} order={o} item={i} onChange={setO} />
+            ))}
             <div className="card">
               <h3>Items</h3>
               {o.items.map((i, k) => (

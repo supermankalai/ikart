@@ -89,6 +89,7 @@ export interface ProductAdmin {
   mrp: number;
   is_active: boolean;
   is_featured: boolean;
+  is_customizable?: boolean;
   images: string[];
   variants: Variant[];
   total_stock: number;
@@ -148,6 +149,12 @@ export type OrderStatus =
   | "PENDING_PAYMENT"
   | "PLACED"
   | "PACKED"
+  | "CUSTOM_NEW"
+  | "DESIGN_REVIEW"
+  | "DESIGN_APPROVED"
+  | "PRINTING"
+  | "QUALITY_CHECK"
+  | "READY_TO_SHIP"
   | "SHIPPED"
   | "OUT_FOR_DELIVERY"
   | "DELIVERED"
@@ -164,6 +171,72 @@ export interface OrderItem {
   image_url: string | null;
   unit_price: number;
   quantity: number;
+  custom_design?: CustomDesign | null;
+}
+
+export type OrderType = "STANDARD" | "CUSTOM";
+
+/** Box of the artwork as fractions of the printable area. */
+export interface Placement {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Rotation in degrees around the box centre */
+  rotation?: number;
+}
+
+export type PrintSide = "front" | "back";
+
+/** One image or text on a printed side, as stored on the order. */
+export interface DesignLayer extends Placement {
+  type: "image" | "text";
+  url: string;
+  width?: number | null;
+  height?: number | null;
+  text?: string | null;
+  font?: string | null;
+  color?: string | null;
+}
+
+export interface DesignSide {
+  side: PrintSide;
+  preview_url: string;
+  layers: DesignLayer[];
+}
+
+export interface CustomDesign {
+  version?: number;
+  preview_url: string;
+  sides?: DesignSide[];
+  color_hex?: string | null;
+  print_price: number;
+  front_print_price?: number;
+  back_print_price?: number;
+  change_request?: { message: string; requested_at: string } | null;
+  revisions?: { replaced_at: string; request?: string | null; preview_url?: string; sides?: DesignSide[] }[];
+  // First version (single front image)
+  artwork_url?: string;
+  side?: string;
+  placement?: Placement;
+  artwork_width?: number | null;
+  artwork_height?: number | null;
+}
+
+export interface CustomQuote {
+  product_name: string;
+  size: string;
+  color: string;
+  tshirt_price: number;
+  front_print_price: number;
+  back_print_price: number;
+  print_price: number;
+  unit_price: number;
+  quantity: number;
+  subtotal: number;
+  shipping_fee: number;
+  total: number;
+  cod_enabled: boolean;
 }
 
 export interface OrderEvent {
@@ -175,6 +248,7 @@ export interface OrderEvent {
 export interface Order {
   id: number;
   order_number: string;
+  order_type?: OrderType | null;
   status: OrderStatus;
   payment_method: "ONLINE" | "COD";
   payment_status: PaymentStatus;
@@ -224,6 +298,7 @@ export interface OrderSummary {
   city: string | null;
   awb: string | null;
   payment_ref: string | null;
+  order_type: OrderType;
 }
 
 export interface PaymentSession {
@@ -240,6 +315,10 @@ export interface StoreSettings {
   support_phone: string;
   support_email: string;
   instagram_url: string;
+  custom_print_enabled: boolean;
+  custom_print_price: number;
+  custom_back_print_price: number;
+  custom_cod_enabled: boolean;
   business_name: string;
   business_address: string;
   jurisdiction_city: string;
@@ -323,6 +402,8 @@ export interface Dashboard {
   in_transit: number;
   pending_payment: number;
   status_counts: Record<string, number>;
+  custom_status_counts: Record<string, number>;
+  custom_to_review: number;
   customers: number;
   products: number;
   sales_by_day: { date: string; total: number }[];

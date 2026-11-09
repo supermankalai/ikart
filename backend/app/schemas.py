@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 PHONE = r"^[6-9]\d{9}$"
 PINCODE = r"^\d{6}$"
@@ -163,6 +163,7 @@ class ProductIn(BaseModel):
     mrp: int = Field(ge=0)
     is_active: bool = True
     is_featured: bool = False
+    is_customizable: bool = False
     images: list[str] = []
     variants: list[VariantIn] = Field(min_length=1)
 
@@ -179,6 +180,7 @@ class ProductAdminOut(BaseModel):
     mrp: int
     is_active: bool
     is_featured: bool
+    is_customizable: bool = False
     images: list[str]
     variants: list[VariantOut]
     total_stock: int
@@ -252,6 +254,7 @@ class OrderItemOut(ORM):
     image_url: str | None
     unit_price: int
     quantity: int
+    custom_design: dict | None = None
 
 
 class OrderEventOut(ORM):
@@ -263,6 +266,7 @@ class OrderEventOut(ORM):
 class OrderOut(ORM):
     id: int
     order_number: str
+    order_type: str | None = None
     status: str
     payment_method: str
     payment_status: str
@@ -312,6 +316,7 @@ class OrderSummary(BaseModel):
     city: str | None
     awb: str | None
     payment_ref: str | None
+    order_type: str = "STANDARD"
 
 
 class OrderPage(BaseModel):
@@ -326,6 +331,93 @@ class PaymentSession(BaseModel):
     env: str
     payment_session_id: str
     cf_order_id: str
+
+
+# ---------- Custom print orders ----------
+CUSTOM_UPLOAD = r"^/uploads/custom/[0-9a-f]{32}\.(png|jpg|webp)$"
+CUSTOM_FONTS = ("Inter", "Playfair Display", "Anton", "Bebas Neue", "Pacifico", "Permanent Marker")
+
+
+class CustomLayer(BaseModel):
+    """One image or text on a side. x/y/w/h are fractions of that side's printable area; rotation in degrees."""
+    type: Literal["image", "text"]
+    url: str = Field(pattern=CUSTOM_UPLOAD)  # the uploaded image, or the text rendered as a transparent PNG
+    x: float = Field(ge=-1, le=2)
+    y: float = Field(ge=-1, le=2)
+    w: float = Field(gt=0, le=3)
+    h: float = Field(gt=0, le=3)
+    rotation: float = Field(default=0, ge=-180, le=180)
+    width: int | None = Field(default=None, ge=1)  # pixel size of the file
+    height: int | None = Field(default=None, ge=1)
+    text: str | None = Field(default=None, max_length=60)
+    font: str | None = Field(default=None, max_length=40)
+    color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+
+    @model_validator(mode="after")
+    def _text_fields(self):
+        if self.type == "text":
+            if not (self.text or "").strip():
+                raise ValueError("Text layers need some text")
+            if self.font not in CUSTOM_FONTS:
+                raise ValueError("Unknown font")
+        return self
+
+
+class CustomSideIn(BaseModel):
+    side: Literal["front", "back"]
+    preview_url: str = Field(pattern=CUSTOM_UPLOAD)
+    layers: list[CustomLayer] = Field(min_length=1, max_length=4)
+
+
+class CustomDesignIn(BaseModel):
+    sides: list[CustomSideIn] = Field(min_length=1, max_length=2)
+    color_hex: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+
+    @model_validator(mode="after")
+    def _unique_sides(self):
+        if len({s.side for s in self.sides}) != len(self.sides):
+            raise ValueError("Each side can only be sent once")
+        return self
+
+    @property
+    def printed_sides(self) -> set[str]:
+        return {s.side for s in self.sides}
+
+
+class CustomQuoteIn(BaseModel):
+    variant_id: int
+    quantity: int = Field(default=1, ge=1, le=20)
+    front: bool = True
+    back: bool = False
+
+
+class CustomQuoteOut(BaseModel):
+    product_name: str
+    size: str
+    color: str
+    tshirt_price: int
+    front_print_price: int  # 0 when the front is not printed
+    back_print_price: int  # 0 when the back is not printed
+    print_price: int  # total print charge per T-shirt
+    unit_price: int
+    quantity: int
+    subtotal: int
+    shipping_fee: int
+    total: int
+    cod_enabled: bool
+
+
+class CustomOrderIn(BaseModel):
+    variant_id: int
+    quantity: int = Field(default=1, ge=1, le=20)
+    design: CustomDesignIn
+    address_id: int
+    payment_method: Literal["ONLINE", "COD"]
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class DesignRequestIn(BaseModel):
+    message: str = Field(min_length=3, max_length=500)
 
 
 class OrderCreateOut(BaseModel):
@@ -431,6 +523,11 @@ class StoreSettings(BaseModel):
     shipping_partner_name: str = "Delivery Partner"
     tracking_url_template: str = ""  # e.g. https://partner.com/track?awb={awb}
     return_days: int = Field(default=7, ge=0)
+    # Custom-printed T-shirts ("Design your own")
+    custom_print_enabled: bool = True
+    custom_print_price: int = Field(default=199, ge=0)  # front print
+    custom_back_print_price: int = Field(default=199, ge=0)
+    custom_cod_enabled: bool = False
     # Home page 3D rail: hang the real product photo (when it is a garment on a plain background)
     hero_rail_photos: bool = True
     # Default parcel used when booking shipments through a delivery partner API
