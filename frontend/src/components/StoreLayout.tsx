@@ -284,7 +284,7 @@ function Footer() {
             <div className="logo">
               i<span style={{ color: "var(--gold-2)" }}>K</span>art
             </div>
-            <p style={{ maxWidth: 300 }}>{settings.tagline}. Thoughtfully made, carefully packed and delivered to your door.</p>
+            <p style={{ maxWidth: 300 }}>{settings.tagline}. Discover thoughtfully curated essentials, crafted for comfort, quality, and timeless style. Carefully packed and delivered straight to your doorstep.</p>
           </div>
           <div>
             <h4>Shop</h4>

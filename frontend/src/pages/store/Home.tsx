@@ -247,8 +247,7 @@ export default function Home() {
           <div className="eyebrow">The iKart promise</div>
           <h2>Quality you can feel</h2>
           <p>
-            Every piece is quality checked and packed by hand in our own store before it ships to you, with live tracking all
-            the way to your door.
+           Every product is carefully quality-checked and thoughtfully packed by our team before dispatch. From our store to your doorstep, enjoy a seamless shopping experience with real-time order tracking every step of the way.
           </p>
         </div>
       </section>
