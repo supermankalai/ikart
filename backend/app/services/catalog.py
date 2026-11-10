@@ -57,6 +57,7 @@ def product_admin(p: Product) -> ProductAdminOut:
         is_active=p.is_active,
         is_featured=p.is_featured,
         is_customizable=bool(p.is_customizable),
+        custom_mockups=p.custom_mockups,
         images=[i.url for i in p.images],
         variants=[VariantOut.model_validate(v) for v in p.variants],
         total_stock=sum(v.stock for v in p.variants),

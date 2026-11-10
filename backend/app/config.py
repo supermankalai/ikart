@@ -40,9 +40,18 @@ class Settings(BaseSettings):
     # Unpaid online orders older than this are cancelled and their stock released.
     pending_payment_expiry_minutes: int = 30
 
+    # AI images for custom T-shirts (OpenAI Images API). Leave the key empty to hide the AI tab.
+    openai_api_key: str = ""
+    openai_image_model: str = "gpt-image-1"
+    openai_image_quality: str = "medium"  # low | medium | high (higher costs more)
+
     @property
     def cashfree_enabled(self) -> bool:
         return bool(self.cashfree_app_id and self.cashfree_secret_key)
+
+    @property
+    def ai_images_enabled(self) -> bool:
+        return bool(self.openai_api_key)
 
     @property
     def shiprocket_enabled(self) -> bool:

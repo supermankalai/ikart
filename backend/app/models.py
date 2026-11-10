@@ -115,6 +115,8 @@ class Product(Base):
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
     # Offered in the "Design your own T-shirt" tool (nullable so existing databases get the column automatically)
     is_customizable: Mapped[bool | None] = mapped_column(Boolean, default=False, nullable=True)
+    # Photo mockups for the designer: {"photos": {colour: {view: url}}, "views": {view: {"area": {x,y,w,h}, "cm": {w,h}}}}
+    custom_mockups: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
@@ -283,3 +285,48 @@ class StoreSetting(Base):
 
     key: Mapped[str] = mapped_column(String(60), primary_key=True)
     value: Mapped[dict | list | str | int | bool | None] = mapped_column(JSON)
+
+
+class Clipart(Base):
+    """Art the customer can add to a custom T-shirt (managed in Admin -> Clipart)."""
+
+    __tablename__ = "clipart"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    category: Mapped[str] = mapped_column(String(60), index=True)
+    url: Mapped[str] = mapped_column(String(500))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class SavedDesign(Base):
+    """A customer's saved T-shirt design. Anyone with the share token can open a copy."""
+
+    __tablename__ = "saved_designs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    product_id: Mapped[int | None] = mapped_column(ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
+    color: Mapped[str | None] = mapped_column(String(40))
+    data: Mapped[dict] = mapped_column(JSON)
+    preview_url: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    product: Mapped[Product | None] = relationship()
+
+
+class AiImage(Base):
+    """Images generated with AI for custom T-shirts (used for the per-customer daily limit)."""
+
+    __tablename__ = "ai_images"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    prompt: Mapped[str] = mapped_column(Text)
+    url: Mapped[str] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)

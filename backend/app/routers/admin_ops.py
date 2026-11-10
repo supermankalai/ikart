@@ -13,10 +13,10 @@ from ..database import get_db
 from ..deps import require_admin
 from ..models import Coupon, Order, OrderItem, OrderStatus, OrderType, PaymentStatus, Product, ProductVariant, User
 from ..schemas import (
-    AdminSettingsOut, CancelIn, CouponIn, CouponOut, CourierQuoteOut, CustomerOut, CustomerPage, DesignRequestIn,
-    IntegrationStatus,
+    AdminSettingsOut, CancelIn, CouponIn, CouponOut, CourierQuoteOut, CustomerOut, CustomerPage, IntegrationStatus,
     OrderAdminOut, OrderPage, ShipIn, StatusUpdateIn, StoreSettings,
 )
+from ..services import custom as custom_svc
 from ..services import orders as svc
 from ..services import shiprocket
 from ..services.store_settings import get_store_settings, save_store_settings
@@ -157,7 +157,8 @@ def export_orders(
     for o in rows:
         a = o.shipping_address or {}
         items = "; ".join(f"{i.product_name} ({i.size}/{i.color}) x{i.quantity}" for i in o.items)
-        artwork = " ".join(f"{settings.backend_url.rstrip('/')}{url}" for i in o.items for url in _design_files(i.custom_design))
+        artwork = " ".join(dict.fromkeys(f"{settings.backend_url.rstrip('/')}{url}"
+                                         for i in o.items for url in custom_svc.design_files(i.custom_design)))
         w.writerow([o.order_number, _aware(o.created_at).strftime("%Y-%m-%d %H:%M"), a.get("name"), a.get("phone"),
                     o.user.email, " ".join(filter(None, [a.get("line1"), a.get("line2")])), a.get("city"),
                     a.get("state"), a.get("pincode"), items, o.subtotal, o.discount, o.shipping_fee, o.total,
@@ -165,15 +166,6 @@ def export_orders(
                     o.order_type or OrderType.STANDARD, artwork])
     return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv",
                              headers={"Content-Disposition": "attachment; filename=ikart-orders.csv"})
-
-
-def _design_files(design: dict | None) -> list[str]:
-    """Print files of a custom design: uploaded images and rendered text, for every printed side."""
-    if not design:
-        return []
-    if design.get("sides"):
-        return [layer["url"] for side in design["sides"] for layer in side.get("layers", []) if layer.get("url")]
-    return [design["artwork_url"]] if design.get("artwork_url") else []
 
 
 def _get_order(db: Session, number: str) -> Order:
@@ -226,12 +218,6 @@ def get_label(number: str, db: Session = Depends(get_db)):
 @router.post("/orders/{number}/sync-tracking", response_model=OrderAdminOut)
 def sync_tracking(number: str, db: Session = Depends(get_db)):
     return svc.sync_partner_tracking(db, _get_order(db, number))
-
-
-@router.post("/orders/{number}/design-request", response_model=OrderAdminOut)
-def design_request(number: str, data: DesignRequestIn, db: Session = Depends(get_db)):
-    """Ask the customer to upload a new design (custom print orders, before approval)."""
-    return svc.request_design_change(db, _get_order(db, number), data.message)
 
 
 @router.post("/orders/{number}/cancel", response_model=OrderAdminOut)

@@ -6,8 +6,9 @@ import { useToast } from "../../context/toast";
 import { api, uploadImage } from "../../lib/api";
 import { discountPct } from "../../lib/format";
 import { COMMON_SIZES, WAIST_SIZES, compareSizes, sortSizes } from "../../lib/sizes";
-import type { CategoryAdmin, ProductAdmin } from "../../lib/types";
+import type { CategoryAdmin, CustomMockups, ProductAdmin } from "../../lib/types";
 import { AdminTop } from "./AdminLayout";
+import MockupEditor from "./MockupEditor";
 
 interface VRow {
   id?: number;
@@ -44,6 +45,7 @@ export default function ProductEditor() {
     is_customizable: false,
   });
   const [images, setImages] = useState<string[]>([]);
+  const [mockups, setMockups] = useState<CustomMockups | null>(null);
   const [uploading, setUploading] = useState(0);
   const [variants, setVariants] = useState<VRow[]>([]);
   const [busy, setBusy] = useState(false);
@@ -77,6 +79,7 @@ export default function ProductEditor() {
         });
         setSlug(p.slug);
         setImages(p.images);
+        setMockups(p.custom_mockups || null);
         setVariants(p.variants.map((v) => ({ id: v.id, key: newKey(), size: v.size, color: v.color, color_hex: v.color_hex || "#cccccc", sku: v.sku || "", stock: v.stock })));
         const cmap = new Map<string, string>();
         p.variants.forEach((v) => cmap.set(v.color, v.color_hex || "#cccccc"));
@@ -173,6 +176,7 @@ export default function ProductEditor() {
       description: f.description.trim() || null,
       details: f.details.trim() || null,
       images,
+      custom_mockups: mockups && (Object.keys(mockups.photos || {}).length || Object.keys(mockups.views || {}).length) ? mockups : null,
       variants: variants.map((v) => ({ id: v.id, size: v.size, color: v.color, color_hex: v.color_hex, sku: v.sku.trim() || null, stock: Number(v.stock) || 0 })),
     };
     try {
@@ -321,6 +325,13 @@ export default function ProductEditor() {
             )}
             <div className="muted small mt-8">{variants.length} variants · {totalStock} units in stock</div>
           </div>
+          {f.is_customizable && (
+            <div className="card">
+              <h3>Designer mockup photos</h3>
+              <MockupEditor value={mockups} onChange={setMockups}
+                colors={[...new Map(variants.filter((v) => v.color.trim()).map((v) => [v.color, v.color_hex])).entries()].map(([name, hex]) => ({ name, hex }))} />
+            </div>
+          )}
         </div>
 
         <div className="stack">

@@ -156,6 +156,7 @@ def _apply(db: Session, p: Product, data: ProductIn) -> None:
     p.is_active = data.is_active
     p.is_featured = data.is_featured
     p.is_customizable = data.is_customizable
+    p.custom_mockups = data.custom_mockups.model_dump() if data.custom_mockups else None
 
     p.images.clear()
     for i, url in enumerate(u for u in data.images if u):

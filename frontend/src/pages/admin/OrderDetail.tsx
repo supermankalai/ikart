@@ -122,9 +122,9 @@ export default function OrderDetail() {
 
         <div className="od-grid">
           <div className="stack">
-            {o.items.filter((i) => i.custom_design).map((i, k) => (
-              <CustomDesignCard key={`design-${k}`} order={o} item={i} onChange={setO} />
-            ))}
+            {o.items.some((i) => i.custom_design) && (
+              <CustomDesignCard order={o} items={o.items.filter((i) => i.custom_design)} onChange={setO} />
+            )}
             <div className="card">
               <h3>Items</h3>
               {o.items.map((i, k) => (

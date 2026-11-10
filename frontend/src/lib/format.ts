@@ -84,7 +84,7 @@ export function designSides(d: Pick<CustomDesign, "sides" | "artwork_url" | "pre
   }];
 }
 
-export const SIDE_LABEL = { front: "Front", back: "Back" } as const;
+export const SIDE_LABEL = { front: "Front", back: "Back", left: "Left sleeve", right: "Right sleeve" } as const;
 export const flowFor = (o: Pick<Order, "order_type">) => (isCustom(o) ? CUSTOM_FLOW : FLOW);
 
 export const INDIAN_STATES = [

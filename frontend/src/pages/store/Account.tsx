@@ -28,6 +28,7 @@ export function AccountLayout() {
       <div className="account">
         <nav className="account-nav">
           <NavLink to="/account/orders">My orders</NavLink>
+          <NavLink to="/account/designs">My designs</NavLink>
           <NavLink to="/account/wishlist">Wishlist</NavLink>
           <NavLink to="/account/addresses">Addresses</NavLink>
           <NavLink to="/account/profile">Profile & password</NavLink>
@@ -155,7 +156,7 @@ export function MyOrderDetail() {
               <div className="info">
                 {i.product_slug ? <Link to={`/product/${i.product_slug}`} className="title">{i.product_name}</Link> : <span className="title">{i.product_name}</span>}
                 <div className="meta">{i.color} · Size {i.size} · Qty {i.quantity}</div>
-                {i.custom_design && (
+                {i.custom_design && idx === order.items.findIndex((x) => x.custom_design) && (
                   <div className="xs mt-8 row wrap">
                     {designSides(i.custom_design).map((s) => (
                       <a key={s.side} className="link" href={s.preview_url} target="_blank" rel="noreferrer">View {SIDE_LABEL[s.side].toLowerCase()} design ↗</a>

@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
-import { useDesignEditor } from "../../components/DesignEditor";
+import Designer, { type DesignRules, type DesignerInitial } from "../../components/designer/Designer";
 import { Empty, Loader } from "../../components/ui";
 import { useAuth } from "../../context/auth";
 import { useToast } from "../../context/toast";
 import { api } from "../../lib/api";
-import { type EditorDesign, emptyDesign, loadDesign, printedSides, saveDesign } from "../../lib/designState";
-import { SIDE_LABEL, designSides, fmtDate } from "../../lib/format";
-import type { CustomDesign, Order, PrintSide } from "../../lib/types";
+import { loadDesign } from "../../lib/designState";
+import { designSides, fmtDate } from "../../lib/format";
+import type { CustomDesign, CustomProduct, Order } from "../../lib/types";
 
 /** Customer replaces the design of a custom order after the store asked for a new one. */
 export default function Redesign() {
@@ -16,33 +16,48 @@ export default function Redesign() {
   const toast = useToast();
   const nav = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
+  const [product, setProduct] = useState<CustomProduct | null>(null);
+  const [initial, setInitial] = useState<DesignerInitial | null>(null);
+  const [rules, setRules] = useState<DesignRules | null>(null);
   const [err, setErr] = useState("");
-  const [design, setDesign] = useState<EditorDesign>(emptyDesign);
-  const [loaded, setLoaded] = useState(false);
-  const [saving, setSaving] = useState(false);
 
-  const item = order?.items.find((i) => i.custom_design);
-  const d: CustomDesign | undefined = item?.custom_design || undefined;
-  const color = d?.color_hex || "#ffffff";
-  const paid: PrintSide[] = d ? designSides(d).map((s) => s.side) : [];
-  const editor = useDesignEditor({ color, design, setDesign });
+  const d: CustomDesign | undefined = order?.items.find((i) => i.custom_design)?.custom_design || undefined;
 
   useEffect(() => {
     if (!user) return;
-    api<Order>(`/api/orders/${number}`)
-      .then(async (o) => {
+    (async () => {
+      try {
+        const o = await api<Order>(`/api/orders/${number}`);
         setOrder(o);
-        const cd = o.items.find((i) => i.custom_design)?.custom_design;
-        if (cd) setDesign(await loadDesign(designSides(cd)));
-        setLoaded(true);
-      })
-      .catch((e) => setErr(e.message));
+        const item = o.items.find((i) => i.custom_design);
+        const cd = item?.custom_design;
+        if (!item || !cd) return;
+        const sides = designSides(cd);
+        // Use the shop's product when it's still available (photo mockups); otherwise a minimal stand-in
+        const products = await api<CustomProduct[]>("/api/custom/products").catch(() => [] as CustomProduct[]);
+        const p = products.find((x) => x.id === item.product_id) || ({
+          id: item.product_id || 0, name: item.product_name.replace(/^Custom print · /, ""), slug: item.product_slug || "", price: 0, mrp: 0,
+          image: null, hover_image: null, category: { id: 0, name: "", slug: "" }, sizes: [], colors: [], in_stock: true, is_featured: false,
+          description: null, details: null, images: [], variants: [{ id: 0, size: item.size, color: item.color, color_hex: cd.color_hex || "#ffffff", sku: null, stock: 1 }],
+        } as unknown as CustomProduct);
+        setProduct(p);
+        setInitial({ productId: p.id, color: item.color, design: await loadDesign(sides, cd.roster || []), roster: cd.roster || [] });
+        setRules({
+          sides: sides.map((s) => s.side),
+          foilSides: sides.filter((s) => s.layers.some((l) => l.foil)).map((s) => s.side),
+          name: sides.some((s) => s.layers.some((l) => l.type === "name")),
+          number: sides.some((s) => s.layers.some((l) => l.type === "number")),
+        });
+      } catch (e) {
+        setErr((e as Error).message);
+      }
+    })();
   }, [number, user]);
 
   if (!ready) return <Loader />;
   if (!user) return <Navigate to={`/login?next=/redesign/${number}`} replace />;
   if (err) return <div className="container"><Empty title="Order not found">{err}</Empty></div>;
-  if (!order || !loaded) return <Loader />;
+  if (!order) return <Loader />;
   if (!d?.change_request)
     return (
       <div className="container">
@@ -52,54 +67,26 @@ export default function Redesign() {
         </Empty>
       </div>
     );
-
-  const now = printedSides(design);
-  const sameSides = now.length === paid.length && now.every((s) => paid.includes(s));
-
-  const submit = async () => {
-    setSaving(true);
-    try {
-      const saved = await saveDesign(design, color);
-      await api<Order>(`/api/custom/orders/${order.order_number}/design`, { body: saved.payload });
-      toast("Thanks! Your new design was sent to our team.", "success");
-      nav(`/account/orders/${order.order_number}`, { replace: true });
-    } catch (e) {
-      toast((e as Error).message, "error");
-      setSaving(false);
-    }
-  };
+  if (!product || !initial || !rules) return <Loader />;
 
   return (
-    <div className="container">
-      <div className="page-head">
+    <div className="container dz-page">
+      <div className="dz-head">
         <div className="crumbs"><Link to={`/account/orders/${order.order_number}`}>Order #{order.order_number}</Link> / New design</div>
         <h1>Update your design</h1>
       </div>
-      <div className="note-box warn mb-16">
-        <b>Message from our team ({fmtDate(d.change_request.requested_at)}):</b> {d.change_request.message}
-      </div>
-      <div className="custom-layout">
-        <div className="custom-stage">{editor.stage}</div>
-        <div className="custom-steps">
-          <section className="card co-step">
-            <p className="small muted" style={{ marginTop: 0 }}>
-              {item?.product_name.replace(/^Custom print · /, "")} · {item?.color} · Size {item?.size}. Your order includes printing on the{" "}
-              <b>{paid.map((s) => SIDE_LABEL[s].toLowerCase()).join(" and ")}</b>, so your new design must use the same side{paid.length > 1 ? "s" : ""}.
-            </p>
-            {editor.panel}
-          </section>
-          <div className="card">
-            {!sameSides && (
-              <div className="small mb-16" style={{ color: "var(--bad)" }}>
-                Please add a design to the {paid.map((s) => SIDE_LABEL[s].toLowerCase()).join(" and ")} only.
-              </div>
-            )}
-            <button className="btn block lg" disabled={!sameSides || saving} onClick={submit}>
-              {saving ? "Sending your design…" : "Send new design"}
-            </button>
-          </div>
-        </div>
-      </div>
+      <Designer
+        products={[product]}
+        initial={initial}
+        rules={rules}
+        continueLabel="Send new design"
+        banner={<div className="note-box warn mb-16"><b>Message from our team ({fmtDate(d.change_request.requested_at)}):</b> {d.change_request.message}</div>}
+        onContinue={async (r) => {
+          await api<Order>(`/api/custom/orders/${order.order_number}/design`, { body: r.saved.payload });
+          toast("Thanks! Your new design was sent to our team.", "success");
+          nav(`/account/orders/${order.order_number}`, { replace: true });
+        }}
+      />
     </div>
   );
 }

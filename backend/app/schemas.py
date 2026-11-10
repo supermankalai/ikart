@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Literal
 
@@ -124,6 +125,10 @@ class ProductDetail(ProductCard):
     variants: list[VariantOut]
 
 
+class CustomProductOut(ProductDetail):
+    custom_mockups: dict | None = None
+
+
 class Facets(BaseModel):
     sizes: list[str]
     colors: list[ColorOut]
@@ -153,6 +158,38 @@ class VariantIn(BaseModel):
         return v.strip() or None if v else None
 
 
+class MockupArea(BaseModel):
+    """Printable area on a mockup photo, as fractions of the photo (0-1)."""
+    x: float = Field(ge=0, le=1)
+    y: float = Field(ge=0, le=1)
+    w: float = Field(gt=0, le=1)
+    h: float = Field(gt=0, le=1)
+
+
+class MockupSize(BaseModel):
+    w: float = Field(gt=0, le=200)  # cm
+    h: float = Field(gt=0, le=200)
+
+
+class MockupView(BaseModel):
+    area: MockupArea
+    cm: MockupSize
+
+
+class CustomMockups(BaseModel):
+    """Real product photos for the T-shirt designer. Views without a photo use the drawn T-shirt."""
+    photos: dict[str, dict[Literal["front", "back", "left", "right"], str]] = {}  # colour name -> view -> photo url
+    views: dict[Literal["front", "back", "left", "right"], MockupView] = {}
+
+    @model_validator(mode="after")
+    def _urls(self):
+        for views in self.photos.values():
+            for url in views.values():
+                if not re.fullmatch(r"/uploads/[0-9a-f]{32}\.(jpg|png|webp|gif)", url):
+                    raise ValueError("Mockup photos must be uploaded images")
+        return self
+
+
 class ProductIn(BaseModel):
     category_id: int
     name: str = Field(min_length=2, max_length=200)
@@ -164,6 +201,7 @@ class ProductIn(BaseModel):
     is_active: bool = True
     is_featured: bool = False
     is_customizable: bool = False
+    custom_mockups: CustomMockups | None = None
     images: list[str] = []
     variants: list[VariantIn] = Field(min_length=1)
 
@@ -181,6 +219,7 @@ class ProductAdminOut(BaseModel):
     is_active: bool
     is_featured: bool
     is_customizable: bool = False
+    custom_mockups: dict | None = None
     images: list[str]
     variants: list[VariantOut]
     total_stock: int
@@ -335,43 +374,69 @@ class PaymentSession(BaseModel):
 
 # ---------- Custom print orders ----------
 CUSTOM_UPLOAD = r"^/uploads/custom/[0-9a-f]{32}\.(png|jpg|webp)$"
-CUSTOM_FONTS = ("Inter", "Playfair Display", "Anton", "Bebas Neue", "Pacifico", "Permanent Marker")
+CUSTOM_FONTS = (
+    "Inter", "Playfair Display", "Anton", "Bebas Neue", "Oswald", "Montserrat", "Pacifico", "Lobster",
+    "Permanent Marker", "Bangers", "Press Start 2P", "Great Vibes",
+)
+CUSTOM_VIEWS = ("front", "back", "left", "right")
+TEXT_TYPES = ("text", "name", "number")
+ViewName = Literal["front", "back", "left", "right"]
+HEX = r"^#[0-9a-fA-F]{6}$"
 
 
 class CustomLayer(BaseModel):
-    """One image or text on a side. x/y/w/h are fractions of that side's printable area; rotation in degrees."""
-    type: Literal["image", "text"]
-    url: str = Field(pattern=CUSTOM_UPLOAD)  # the uploaded image, or the text rendered as a transparent PNG
+    """One item on a printed side. x/y/w/h are fractions of that side's printable area; rotation in degrees.
+
+    Every layer is printed from `url` (a PNG/JPG uploaded by the customer's browser): uploaded and AI images,
+    clipart (recoloured), and text (rendered with its font and effect). Name/number layers are a sample;
+    the real names/numbers come from the roster.
+    """
+    type: Literal["image", "ai", "art", "text", "name", "number"]
+    url: str = Field(pattern=CUSTOM_UPLOAD)
     x: float = Field(ge=-1, le=2)
     y: float = Field(ge=-1, le=2)
     w: float = Field(gt=0, le=3)
     h: float = Field(gt=0, le=3)
     rotation: float = Field(default=0, ge=-180, le=180)
-    width: int | None = Field(default=None, ge=1)  # pixel size of the file
+    flip: bool = False
+    width: int | None = Field(default=None, ge=1)
     height: int | None = Field(default=None, ge=1)
+    # Text, name and number
     text: str | None = Field(default=None, max_length=60)
     font: str | None = Field(default=None, max_length=40)
-    color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    color: str | None = Field(default=None, pattern=HEX)
+    effect: Literal["straight", "arc", "circle", "bulge", "grow", "shrink"] | None = None
+    curve: int | None = Field(default=None, ge=-100, le=100)
+    outline_color: str | None = Field(default=None, pattern=HEX)
+    outline_width: int | None = Field(default=None, ge=0, le=20)
+    spacing: int | None = Field(default=None, ge=-10, le=60)
+    # Image tools / art
+    background_removed: bool = False
+    single_color: str | None = Field(default=None, pattern=HEX)
+    name: str | None = Field(default=None, max_length=100)  # clipart name, AI prompt
+    # Premium finish (extra charge per side)
+    foil: Literal["gold", "silver"] | None = None
 
     @model_validator(mode="after")
     def _text_fields(self):
-        if self.type == "text":
-            if not (self.text or "").strip():
-                raise ValueError("Text layers need some text")
+        if self.type in TEXT_TYPES:
             if self.font not in CUSTOM_FONTS:
                 raise ValueError("Unknown font")
+            if self.type == "text" and not (self.text or "").strip():
+                raise ValueError("Text layers need some text")
         return self
 
 
 class CustomSideIn(BaseModel):
-    side: Literal["front", "back"]
+    side: ViewName
     preview_url: str = Field(pattern=CUSTOM_UPLOAD)
-    layers: list[CustomLayer] = Field(min_length=1, max_length=4)
+    layers: list[CustomLayer] = Field(min_length=1, max_length=12)
+    area_cm: MockupSize | None = None  # real size of this side's print area (for print sizes)
 
 
 class CustomDesignIn(BaseModel):
-    sides: list[CustomSideIn] = Field(min_length=1, max_length=2)
-    color_hex: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    sides: list[CustomSideIn] = Field(min_length=1, max_length=4)
+    color_hex: str | None = Field(default=None, pattern=HEX)
 
     @model_validator(mode="after")
     def _unique_sides(self):
@@ -383,34 +448,77 @@ class CustomDesignIn(BaseModel):
     def printed_sides(self) -> set[str]:
         return {s.side for s in self.sides}
 
+    @property
+    def foil_sides(self) -> set[str]:
+        return {s.side for s in self.sides if any(layer.foil for layer in s.layers)}
+
+    @property
+    def has_name(self) -> bool:
+        return any(layer.type == "name" for s in self.sides for layer in s.layers)
+
+    @property
+    def has_number(self) -> bool:
+        return any(layer.type == "number" for s in self.sides for layer in s.layers)
+
+
+class RosterRow(BaseModel):
+    """One printed piece in a name & number (team) order."""
+    size: str = Field(min_length=1, max_length=20)
+    name: str | None = Field(default=None, max_length=30)
+    number: str | None = Field(default=None, max_length=4, pattern=r"^[0-9A-Za-z]*$")
+
+
+class CustomLineIn(BaseModel):
+    variant_id: int
+    quantity: int = Field(ge=1, le=500)
+
 
 class CustomQuoteIn(BaseModel):
+    lines: list[CustomLineIn] = Field(min_length=1, max_length=15)
+    sides: list[ViewName] = Field(default_factory=lambda: ["front"])
+    foil_sides: list[ViewName] = []
+    name: bool = False
+    number: bool = False
+    glow: bool = False
+
+
+class CustomQuoteLine(BaseModel):
     variant_id: int
-    quantity: int = Field(default=1, ge=1, le=20)
-    front: bool = True
-    back: bool = False
+    size: str
+    quantity: int
+    stock: int
+    issue: str | None = None
 
 
 class CustomQuoteOut(BaseModel):
     product_name: str
-    size: str
     color: str
-    tshirt_price: int
-    front_print_price: int  # 0 when the front is not printed
-    back_print_price: int  # 0 when the back is not printed
-    print_price: int  # total print charge per T-shirt
-    unit_price: int
+    lines: list[CustomQuoteLine]
     quantity: int
+    tshirt_price: int
+    side_charges: dict[str, int]  # print charge per printed side, per T-shirt
+    foil_charge: int  # per T-shirt
+    name_charge: int
+    number_charge: int
+    glow_charge: int
+    print_price: int  # all extras per T-shirt
+    unit_price: int
     subtotal: int
+    discount_percent: int
+    discount: int
     shipping_fee: int
     total: int
     cod_enabled: bool
+    max_quantity: int
+    next_tier: dict | None = None  # {"min_qty", "percent"} of the next bulk discount
+    has_issues: bool = False
 
 
 class CustomOrderIn(BaseModel):
-    variant_id: int
-    quantity: int = Field(default=1, ge=1, le=20)
+    lines: list[CustomLineIn] = Field(default_factory=list, max_length=15)  # ignored when a roster is sent
     design: CustomDesignIn
+    roster: list[RosterRow] | None = Field(default=None, max_length=500)
+    glow: bool = False
     address_id: int
     payment_method: Literal["ONLINE", "COD"]
     notes: str | None = Field(default=None, max_length=500)
@@ -418,6 +526,62 @@ class CustomOrderIn(BaseModel):
 
 class DesignRequestIn(BaseModel):
     message: str = Field(min_length=3, max_length=500)
+
+
+class SavedDesignIn(BaseModel):
+    name: str = Field(default="My design", min_length=1, max_length=120)
+    product_id: int
+    color: str = Field(max_length=40)
+    design: CustomDesignIn
+    roster: list[RosterRow] | None = Field(default=None, max_length=500)
+    sizes: dict[str, int] = {}
+    glow: bool = False
+
+
+class SavedDesignOut(BaseModel):
+    id: int
+    token: str
+    name: str
+    product_id: int | None
+    product_slug: str | None = None
+    product_name: str | None = None
+    color: str | None
+    preview_url: str | None
+    data: dict
+    is_owner: bool = False
+    created_at: datetime
+    updated_at: datetime
+
+
+class ClipartOut(ORM):
+    id: int
+    name: str
+    category: str
+    url: str
+    is_active: bool = True
+    sort_order: int = 0
+
+
+class ClipartIn(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    category: str = Field(min_length=1, max_length=60)
+    url: str = Field(pattern=r"^/uploads/clipart/[0-9a-f]{32}\.(png|webp|svg)$")
+    is_active: bool = True
+    sort_order: int = 0
+
+
+AI_STYLES = ("none", "minimalist", "cartoon", "traditional_indian", "modern", "vintage", "bold_graphic")
+
+
+class AiImageIn(BaseModel):
+    prompt: str = Field(min_length=3, max_length=400)
+    style: Literal["none", "minimalist", "cartoon", "traditional_indian", "modern", "vintage", "bold_graphic"] = "none"
+
+
+class CustomConfigOut(BaseModel):
+    ai_enabled: bool
+    ai_daily_limit: int
+    ai_remaining: int | None = None
 
 
 class OrderCreateOut(BaseModel):
@@ -505,6 +669,11 @@ class CouponOut(ORM):
     created_at: datetime
 
 
+class BulkTier(BaseModel):
+    min_qty: int = Field(ge=2, le=1000)
+    percent: int = Field(ge=1, le=90)
+
+
 class StoreSettings(BaseModel):
     store_name: str = "iKart"
     tagline: str = "Premium everyday wear"
@@ -525,9 +694,18 @@ class StoreSettings(BaseModel):
     return_days: int = Field(default=7, ge=0)
     # Custom-printed T-shirts ("Design your own")
     custom_print_enabled: bool = True
-    custom_print_price: int = Field(default=199, ge=0)  # front print
+    custom_print_price: int = Field(default=199, ge=0)  # front print, per T-shirt
     custom_back_print_price: int = Field(default=199, ge=0)
+    custom_sleeve_print_price: int = Field(default=99, ge=0)  # each sleeve
+    custom_foil_price: int = Field(default=100, ge=0)  # gold/silver foil, per printed side that uses it
+    custom_glow_price: int = Field(default=130, ge=0)  # glow-in-the-dark ink, per T-shirt
+    custom_name_price: int = Field(default=50, ge=0)  # personalised name, per T-shirt
+    custom_number_price: int = Field(default=50, ge=0)  # personalised number, per T-shirt
+    custom_bulk_tiers: list[BulkTier] = Field(default_factory=lambda: [
+        BulkTier(min_qty=10, percent=5), BulkTier(min_qty=25, percent=10), BulkTier(min_qty=50, percent=15)])
+    custom_max_qty: int = Field(default=100, ge=1, le=500)  # above this, customers are asked to contact you
     custom_cod_enabled: bool = False
+    ai_daily_limit: int = Field(default=10, ge=0, le=100)  # AI images per customer per day
     # Home page 3D rail: hang the real product photo (when it is a garment on a plain background)
     hero_rail_photos: bool = True
     # Default parcel used when booking shipments through a delivery partner API

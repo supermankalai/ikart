@@ -90,6 +90,7 @@ export interface ProductAdmin {
   is_active: boolean;
   is_featured: boolean;
   is_customizable?: boolean;
+  custom_mockups?: CustomMockups | null;
   images: string[];
   variants: Variant[];
   total_stock: number;
@@ -186,23 +187,44 @@ export interface Placement {
   rotation?: number;
 }
 
-export type PrintSide = "front" | "back";
+/** Printable views of a T-shirt. "left"/"right" are the wearer's sleeves. */
+export type PrintSide = "front" | "back" | "left" | "right";
+export type LayerKind = "image" | "ai" | "art" | "text" | "name" | "number";
+export type TextEffect = "straight" | "arc" | "circle" | "bulge" | "grow" | "shrink";
+export type Foil = "gold" | "silver";
 
-/** One image or text on a printed side, as stored on the order. */
+/** One item on a printed side, as stored on the order. */
 export interface DesignLayer extends Placement {
-  type: "image" | "text";
+  type: LayerKind;
   url: string;
+  flip?: boolean;
   width?: number | null;
   height?: number | null;
   text?: string | null;
   font?: string | null;
   color?: string | null;
+  effect?: TextEffect | null;
+  curve?: number | null;
+  outline_color?: string | null;
+  outline_width?: number | null;
+  spacing?: number | null;
+  background_removed?: boolean;
+  single_color?: string | null;
+  name?: string | null;
+  foil?: Foil | null;
 }
 
 export interface DesignSide {
   side: PrintSide;
   preview_url: string;
   layers: DesignLayer[];
+  area_cm?: { w: number; h: number } | null;
+}
+
+export interface RosterRow {
+  size: string;
+  name?: string | null;
+  number?: string | null;
 }
 
 export interface CustomDesign {
@@ -210,9 +232,10 @@ export interface CustomDesign {
   preview_url: string;
   sides?: DesignSide[];
   color_hex?: string | null;
+  roster?: RosterRow[] | null;
+  glow?: boolean;
   print_price: number;
-  front_print_price?: number;
-  back_print_price?: number;
+  pricing?: Record<string, unknown>;
   change_request?: { message: string; requested_at: string } | null;
   revisions?: { replaced_at: string; request?: string | null; preview_url?: string; sides?: DesignSide[] }[];
   // First version (single front image)
@@ -223,20 +246,87 @@ export interface CustomDesign {
   artwork_height?: number | null;
 }
 
+export interface CustomQuoteLine {
+  variant_id: number;
+  size: string;
+  quantity: number;
+  stock: number;
+  issue: string | null;
+}
+
 export interface CustomQuote {
   product_name: string;
-  size: string;
   color: string;
+  lines: CustomQuoteLine[];
+  quantity: number;
   tshirt_price: number;
-  front_print_price: number;
-  back_print_price: number;
+  side_charges: Partial<Record<PrintSide, number>>;
+  foil_charge: number;
+  name_charge: number;
+  number_charge: number;
+  glow_charge: number;
   print_price: number;
   unit_price: number;
-  quantity: number;
   subtotal: number;
+  discount_percent: number;
+  discount: number;
   shipping_fee: number;
   total: number;
   cod_enabled: boolean;
+  max_quantity: number;
+  next_tier: { min_qty: number; percent: number } | null;
+  has_issues: boolean;
+}
+
+export interface MockupView {
+  area: { x: number; y: number; w: number; h: number };
+  cm: { w: number; h: number };
+}
+
+export interface CustomMockups {
+  photos?: Record<string, Partial<Record<PrintSide, string>>>;
+  views?: Partial<Record<PrintSide, MockupView>>;
+}
+
+export interface CustomProduct extends ProductDetail {
+  custom_mockups?: CustomMockups | null;
+}
+
+export interface Clipart {
+  id: number;
+  name: string;
+  category: string;
+  url: string;
+  is_active?: boolean;
+  sort_order?: number;
+}
+
+export interface SavedDesignData {
+  design: { sides: DesignSide[]; color_hex?: string | null };
+  roster?: RosterRow[] | null;
+  sizes?: Record<string, number>;
+  glow?: boolean;
+}
+
+export interface SavedDesign {
+  id: number;
+  token: string;
+  name: string;
+  product_id: number | null;
+  product_slug: string | null;
+  product_name: string | null;
+  color: string | null;
+  preview_url: string | null;
+  data: SavedDesignData;
+  is_owner: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomConfig {
+  ai_enabled: boolean;
+  ai_daily_limit: number;
+  ai_remaining: number | null;
 }
 
 export interface OrderEvent {
@@ -318,7 +408,15 @@ export interface StoreSettings {
   custom_print_enabled: boolean;
   custom_print_price: number;
   custom_back_print_price: number;
+  custom_sleeve_print_price: number;
+  custom_foil_price: number;
+  custom_glow_price: number;
+  custom_name_price: number;
+  custom_number_price: number;
+  custom_bulk_tiers: { min_qty: number; percent: number }[];
+  custom_max_qty: number;
   custom_cod_enabled: boolean;
+  ai_daily_limit: number;
   business_name: string;
   business_address: string;
   jurisdiction_city: string;

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import Icon from "../../components/Icon";
 import { Loader } from "../../components/ui";
 import { useStore } from "../../context/store";
 import { useToast } from "../../context/toast";
@@ -86,7 +87,35 @@ export default function Settings() {
           <div className="grid-2 mt-8">
             <div className="field"><label htmlFor="s-cpp">Front print charge (₹)</label><input id="s-cpp" className="input" type="number" min={0} value={f.custom_print_price} onChange={set("custom_print_price")} /></div>
             <div className="field"><label htmlFor="s-cbp">Back print charge (₹)</label><input id="s-cbp" className="input" type="number" min={0} value={f.custom_back_print_price} onChange={set("custom_back_print_price")} /></div>
+            <div className="field"><label htmlFor="s-csp">Sleeve print, each (₹)</label><input id="s-csp" className="input" type="number" min={0} value={f.custom_sleeve_print_price} onChange={set("custom_sleeve_print_price")} /></div>
+            <div className="field"><label htmlFor="s-cfp">Gold/silver foil, per side (₹)</label><input id="s-cfp" className="input" type="number" min={0} value={f.custom_foil_price} onChange={set("custom_foil_price")} /></div>
+            <div className="field"><label htmlFor="s-cgp">Glow in the dark, per piece (₹)</label><input id="s-cgp" className="input" type="number" min={0} value={f.custom_glow_price} onChange={set("custom_glow_price")} /></div>
+            <div className="field"><label htmlFor="s-cnp">Name, per piece (₹)</label><input id="s-cnp" className="input" type="number" min={0} value={f.custom_name_price} onChange={set("custom_name_price")} /></div>
+            <div className="field"><label htmlFor="s-cnu">Number, per piece (₹)</label><input id="s-cnu" className="input" type="number" min={0} value={f.custom_number_price} onChange={set("custom_number_price")} /></div>
+            <div className="field"><label htmlFor="s-cmq">Max pieces per order</label><input id="s-cmq" className="input" type="number" min={1} max={500} value={f.custom_max_qty} onChange={set("custom_max_qty")} /></div>
           </div>
+          <div className="dz-label">Bulk discounts</div>
+          {(f.custom_bulk_tiers || []).map((t, i) => (
+            <div key={i} className="row mb-8">
+              <span className="small">From</span>
+              <input className="input sm" style={{ width: 80 }} type="number" min={2} value={t.min_qty} aria-label="Minimum pieces"
+                onChange={(e) => setF({ ...f, custom_bulk_tiers: f.custom_bulk_tiers.map((x, k) => (k === i ? { ...x, min_qty: Number(e.target.value) } : x)) })} />
+              <span className="small">pcs:</span>
+              <input className="input sm" style={{ width: 70 }} type="number" min={1} max={90} value={t.percent} aria-label="Discount percent"
+                onChange={(e) => setF({ ...f, custom_bulk_tiers: f.custom_bulk_tiers.map((x, k) => (k === i ? { ...x, percent: Number(e.target.value) } : x)) })} />
+              <span className="small">% off</span>
+              <button type="button" className="icon-btn" aria-label="Remove tier" onClick={() => setF({ ...f, custom_bulk_tiers: f.custom_bulk_tiers.filter((_, k) => k !== i) })}><Icon name="trash" className="icon sm" /></button>
+            </div>
+          ))}
+          {(f.custom_bulk_tiers || []).length < 6 && (
+            <button type="button" className="btn light sm mb-16" onClick={() => setF({ ...f, custom_bulk_tiers: [...(f.custom_bulk_tiers || []), { min_qty: 100, percent: 20 }] })}>
+              <Icon name="plus" className="icon sm" /> Add discount tier
+            </button>
+          )}
+          <div className="grid-2">
+            <div className="field"><label htmlFor="s-ai">AI images per customer per day</label><input id="s-ai" className="input" type="number" min={0} max={100} value={f.ai_daily_limit} onChange={set("ai_daily_limit")} /></div>
+          </div>
+          <div className="xs muted" style={{ marginTop: -6, marginBottom: 12 }}>AI images appear only when OPENAI_API_KEY is set in backend/.env. 0 turns them off.</div>
           <label className="check" style={{ display: "flex" }}>
             <span className="switch"><input type="checkbox" checked={f.custom_cod_enabled} onChange={set("custom_cod_enabled")} /><i /></span>
             Allow cash on delivery for custom orders

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import StoreLayout from "./components/StoreLayout";
 import AdminLayout from "./pages/admin/AdminLayout";
 import Categories from "./pages/admin/Categories";
+import AdminClipart from "./pages/admin/Clipart";
 import Coupons from "./pages/admin/Coupons";
 import Customers from "./pages/admin/Customers";
 import Dashboard from "./pages/admin/Dashboard";
@@ -19,6 +20,7 @@ import Home from "./pages/store/Home";
 import InfoPage, { NotFound } from "./pages/store/Info";
 import OrderStatus from "./pages/store/OrderStatus";
 import Product from "./pages/store/Product";
+import MyDesigns from "./pages/store/MyDesigns";
 import Redesign from "./pages/store/Redesign";
 import Shop from "./pages/store/Shop";
 
@@ -42,6 +44,7 @@ export default function App() {
           <Route path="orders" element={<MyOrders />} />
           <Route path="orders/:number" element={<MyOrderDetail />} />
           <Route path="addresses" element={<Addresses />} />
+          <Route path="designs" element={<MyDesigns />} />
           <Route path="wishlist" element={<Wishlist />} />
           <Route path="profile" element={<Profile />} />
         </Route>
@@ -65,6 +68,7 @@ export default function App() {
         <Route path="categories" element={<Categories />} />
         <Route path="customers" element={<Customers />} />
         <Route path="coupons" element={<Coupons />} />
+        <Route path="clipart" element={<AdminClipart />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
