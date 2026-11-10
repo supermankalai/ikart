@@ -3,7 +3,7 @@ import type { EditorDesign, EditorLayer } from "../../lib/designState";
 import type { ViewSpec } from "../../lib/teeMockup";
 import type { CustomConfig, CustomProduct, PrintSide, RosterRow, StoreSettings } from "../../lib/types";
 
-export type Tool = "product" | "upload" | "text" | "art" | "ai" | "names" | "layers";
+export type Tool = "product" | "upload" | "text" | "art" | "ai" | "names" | "layers" | "order";
 
 export interface DesignerApi {
   design: EditorDesign;

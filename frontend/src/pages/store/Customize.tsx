@@ -13,6 +13,19 @@ import { loadDesign } from "../../lib/designState";
 import { SIDE_LABEL, money } from "../../lib/format";
 import type { Address, AddressInput, CustomProduct, Order, PaymentSession, PrintSide, SavedDesign } from "../../lib/types";
 
+/** Slim header for the design studio's other screens (review & pay, messages). */
+export function StudioShell({ children, back }: { children: React.ReactNode; back?: React.ReactNode }) {
+  return (
+    <div className="studio-shell">
+      <header className="studio-bar">
+        <a href="/" className="logo">i<span>K</span>art</a>
+        <div className="row">{back ?? <Link to="/shop" className="link small">Back to shop</Link>}</div>
+      </header>
+      {children}
+    </div>
+  );
+}
+
 export default function Customize() {
   const { user } = useAuth();
   const { settings } = useStore();
@@ -113,22 +126,25 @@ export default function Customize() {
   };
 
   if (!settings.custom_print_enabled || loadErr)
-    return <div className="container"><Empty title="Custom printing is not available right now">{loadErr}</Empty></div>;
-  if (!products || !initial) return <Loader />;
+    return <StudioShell><div className="container"><Empty title="Custom printing is not available right now">{loadErr}</Empty></div></StudioShell>;
+  if (!products || !initial) return <StudioShell><Loader /></StudioShell>;
   if (!products.length)
     return (
-      <div className="container">
-        <Empty title="Custom printing is coming soon">
-          <p className="muted">We're getting our blank T-shirts ready. Please check back shortly.</p>
-          <Link to="/shop" className="btn mt-16">Shop the collection</Link>
-        </Empty>
-      </div>
+      <StudioShell>
+        <div className="container">
+          <Empty title="Custom printing is coming soon">
+            <p className="muted">We're getting our blank T-shirts ready. Please check back shortly.</p>
+            <Link to="/shop" className="btn mt-16">Shop the collection</Link>
+          </Empty>
+        </div>
+      </StudioShell>
     );
 
   /* ---------- Step 2: review + delivery + payment ---------- */
   if (result && result.quote) {
     const q = result.quote;
     return (
+      <StudioShell back={<button className="link small" onClick={() => setResult(null)}>← Back to design</button>}>
       <div className="container">
         <div className="page-head">
           <div className="crumbs"><button className="link" onClick={() => setResult(null)}>Design</button> / Review & order</div>
@@ -237,17 +253,10 @@ export default function Customize() {
         </div>
         {modal}
       </div>
+      </StudioShell>
     );
   }
 
-  /* ---------- Step 1: design ---------- */
-  return (
-    <div className="container dz-page">
-      <div className="dz-head">
-        <h1>Design your own T-shirt</h1>
-        <p className="muted">Add photos, text, art or names and numbers to the front, back and sleeves. See exactly how it looks before you order.</p>
-      </div>
-      <Designer products={products} initial={initial} continueLabel="Review & order" onContinue={(r) => { setResult(r); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
-    </div>
-  );
+  /* ---------- Step 1: design (full screen) ---------- */
+  return <Designer products={products} initial={initial} continueLabel="Review & order" onContinue={(r) => { setResult(r); window.scrollTo({ top: 0 }); }} />;
 }

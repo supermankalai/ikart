@@ -377,44 +377,75 @@ export default function Designer({
   };
 
   const panel = {
-    product: <ProductPanel />, upload: <UploadPanel />, text: <TextPanel />, art: <ArtPanel />, ai: <AiPanel />, names: <NamesPanel />, layers: <LayersPanel />,
+    product: <ProductPanel />, upload: <UploadPanel />, text: <TextPanel />, art: <ArtPanel />, ai: <AiPanel />, names: <NamesPanel />, layers: <LayersPanel />, order: null,
   }[tool];
   const tools = TOOLS.filter((t) => t.id !== "ai" || config?.ai_enabled);
 
   const sidePrice = (v: PrintSide) => (v === "front" ? settings.custom_print_price : v === "back" ? settings.custom_back_print_price : settings.custom_sleeve_print_price);
 
+  const orderPanel = rules ? (
+    <div className="dz-stack">
+      <h3 className="dz-h">Your order</h3>
+      <p className="small" style={{ margin: 0 }}>{product.name} · {color}. Printed on {rules.sides.map((s) => SIDE_LABEL[s].toLowerCase()).join(", ")}.</p>
+      {rulesProblem && <div className="note-box warn small">{rulesProblem}</div>}
+      <button className="btn block lg" disabled={busy} onClick={doContinue}>{busy ? "Sending…" : continueLabel}</button>
+    </div>
+  ) : (
+    <div>
+      <h3 className="dz-h">Order</h3>
+      <SummaryPanel
+        sizes={sizes} variantOf={variantOf} qty={qty} setQty={setQty} personalised={personalised} roster={roster} glow={glow} setGlow={setGlow}
+        quote={quote} quoteErr={quoteErr} hasSides={!!sides.length} totalQty={totalQty} colorHex={colorHex} goNames={() => setTool("names")}
+      />
+      <button className="btn gold block lg mt-16" disabled={busy} onClick={doContinue}>
+        {busy ? "Saving your design…" : continueLabel} {!busy && <Icon name="chevron" className="icon sm" />}
+      </button>
+    </div>
+  );
+  const firstTier = [...(settings.custom_bulk_tiers || [])].sort((x, y) => x.min_qty - y.min_qty)[0];
+  const cost = quote ? quote.subtotal - quote.discount : null;
+
   return (
     <DesignerCtx.Provider value={api_}>
-      <div className="dz">
-        {banner}
-        <div className="dz-top">
+      <div className="dz studio">
+        <header className="dz-top">
+          <a href="/" className="logo dz-logo" aria-label={`${settings.store_name} home`}>i<span>K</span>art</a>
           <div className="dz-title">
             <b>{product.name}</b>
-            <span className="muted small"><i className="dz-dot" style={{ background: colorHex }} /> {color}</span>
+            <span className="muted xs"><i className="dz-dot" style={{ background: colorHex }} /> {color}</span>
           </div>
           <div className="dz-actions">
-            <button className="icon-btn" onClick={hist.undo} disabled={!hist.canUndo} aria-label="Undo" title="Undo (Ctrl+Z)"><Icon name="undo" /></button>
-            <button className="icon-btn" onClick={hist.redo} disabled={!hist.canRedo} aria-label="Redo" title="Redo (Ctrl+Y)"><Icon name="redo" /></button>
-            {!locked && (
-              <>
-                <button className="btn light sm" onClick={() => askSave("save")} disabled={busy}><Icon name="save" className="icon sm" /> {saved && savedVersion === version ? "Saved" : "Save"}</button>
-                <button className="btn light sm" onClick={() => askSave("share")} disabled={busy}><Icon name="share" className="icon sm" /> Share</button>
-              </>
-            )}
+            <div className="dz-actgroup">
+              <button onClick={hist.undo} disabled={!hist.canUndo} title="Undo (Ctrl+Z)"><Icon name="undo" /><span>Undo</span></button>
+              <button onClick={hist.redo} disabled={!hist.canRedo} title="Redo (Ctrl+Y)"><Icon name="redo" /><span>Redo</span></button>
+              {!locked && (
+                <>
+                  <button onClick={() => askSave("save")} disabled={busy}><Icon name="save" /><span>{saved && savedVersion === version ? "Saved" : "Save"}</span></button>
+                  <button onClick={() => askSave("share")} disabled={busy}><Icon name="share" /><span>Share</span></button>
+                </>
+              )}
+              <a href={`https://wa.me/91${(settings.support_phone || "").replace(/\D/g, "").slice(-10)}`} target="_blank" rel="noreferrer"><Icon name="phone" /><span>Contact</span></a>
+            </div>
+            <button className="btn gold dz-orderbtn" disabled={busy} onClick={() => (locked ? doContinue() : tool === "order" ? doContinue() : (setTool("order"), sides.length && totalQty ? doContinue() : undefined))}>
+              {busy ? "Saving…" : locked ? continueLabel : "Order"}
+            </button>
           </div>
-        </div>
+        </header>
 
         <div className="dz-body">
           <nav className="dz-rail" aria-label="Design tools">
-            {tools.map((t) => (
+            {[...tools, { id: "order" as Tool, label: locked ? "Send" : "Order", icon: "bag" }].map((t) => (
               <button key={t.id} className={tool === t.id ? "on" : ""} onClick={() => setTool(t.id)} aria-pressed={tool === t.id}>
-                <Icon name={t.icon} />
+                <span className="dz-rail-ico"><Icon name={t.icon} /></span>
                 <span>{t.label}</span>
               </button>
             ))}
           </nav>
 
-          <section className="dz-panel" aria-label="Tool options">{panel}</section>
+          <section className="dz-panel" aria-label="Tool options">
+            {banner}
+            {tool === "order" ? orderPanel : panel}
+          </section>
 
           <main className="dz-stage">
             <div className={`dz-context ${active ? "" : "empty"}`}>
@@ -446,10 +477,11 @@ export default function Designer({
                     <button className="icon-btn" onClick={() => reorder(active.id, -1)} aria-label="Send backward" title="Send backward"><Icon name="down" /></button>
                     <button className="icon-btn" onClick={() => duplicate(active.id)} aria-label="Duplicate" title="Duplicate (Ctrl+D)"><Icon name="copy" /></button>
                     <button className="icon-btn danger" onClick={() => remove(active.id)} aria-label="Delete" title="Delete"><Icon name="trash" /></button>
+                    <button className="icon-btn" onClick={() => setActiveId(null)} aria-label="Done" title="Done"><Icon name="check" /></button>
                   </div>
                 </>
               ) : (
-                <span className="muted small">{design[view].length ? "Tap an item on the T-shirt to move, resize or rotate it." : "Add an image, text or art from the tools."}</span>
+                <span className="muted small">{design[view].length ? "Tap an item on the T-shirt to move, resize or rotate it." : "Add an image, text or art from the tools on the left."}</span>
               )}
             </div>
 
@@ -459,36 +491,30 @@ export default function Designer({
                   const w = where(d, id);
                   return w ? { ...d, [w.v]: d[w.v].map((l) => (l.id === id ? { ...l, p } : l)) } : d;
                 })} />
-              <span className="dz-areainfo xs">{SIDE_LABEL[view]} print area · {spec.cm.w}×{spec.cm.h} cm</span>
             </div>
 
-            <div className="dz-views" role="tablist" aria-label="T-shirt sides">
-              {VIEWS.map((v) => (
-                <button key={v} role="tab" aria-selected={view === v} className={view === v ? "on" : ""} onClick={() => { setView(v); setActiveId(null); }}>
-                  <span className="dz-view-thumb"><DesignCanvas spec={views[v]} color={colorHex} layers={design[v].map((l) => ({ id: l.id, src: l.src, p: l.p, flip: l.flip }))} /></span>
-                  <span className="dz-view-label">{SIDE_LABEL[v]}{design[v].length > 0 && <i className="dz-on" aria-label="has design" />}</span>
-                  {!locked && <span className="xs muted">+{money(sidePrice(v))}</span>}
-                </button>
-              ))}
-            </div>
+            {!locked && (
+              <button className="dz-cost" onClick={() => setTool("order")} title="Sizes, quantity and price">
+                <span className="dz-cost-label">Your cost</span>
+                <b>{cost !== null ? money(cost) : <><small className="xs muted">from </small>{money(product.price + settings.custom_print_price)}</>}</b>
+                {quote && quote.quantity > 1 && <span className="xs muted">{quote.quantity} pcs · {money(quote.unit_price)} each</span>}
+                <span className="dz-cost-hint">
+                  {quote?.next_tier ? <>Add <b>{quote.next_tier.min_qty - quote.quantity}</b> more to save {quote.next_tier.percent}%</>
+                    : quote?.discount ? <>Bulk discount {quote.discount_percent}% applied</>
+                    : firstTier ? <>Order <b>{firstTier.min_qty}+</b> for discounted rates</> : <>{SIDE_LABEL[view]} print area {spec.cm.w}×{spec.cm.h} cm</>}
+                </span>
+              </button>
+            )}
           </main>
 
-          <aside className="dz-summary" aria-label="Order summary">
-            {rules ? (
-              <div className="dz-stack">
-                <div className="dz-label">Your order</div>
-                <p className="small" style={{ margin: 0 }}>{product.name} · {color}. Printed on {rules.sides.map((s) => SIDE_LABEL[s].toLowerCase()).join(", ")}.</p>
-                {rulesProblem && <div className="note-box warn small">{rulesProblem}</div>}
-              </div>
-            ) : (
-              <SummaryPanel
-                sizes={sizes} variantOf={variantOf} qty={qty} setQty={setQty} personalised={personalised} roster={roster} glow={glow} setGlow={setGlow}
-                quote={quote} quoteErr={quoteErr} hasSides={!!sides.length} totalQty={totalQty} colorHex={colorHex} goNames={() => setTool("names")}
-              />
-            )}
-            <button className="btn block lg mt-16" disabled={busy} onClick={doContinue}>
-              {busy ? "Saving your design…" : continueLabel} {!busy && <Icon name="chevron" className="icon sm" />}
-            </button>
+          <aside className="dz-views" role="tablist" aria-label="T-shirt sides">
+            {VIEWS.map((v) => (
+              <button key={v} role="tab" aria-selected={view === v} className={view === v ? "on" : ""} onClick={() => { setView(v); setActiveId(null); }}>
+                <span className="dz-view-thumb"><DesignCanvas spec={views[v]} color={colorHex} layers={design[v].map((l) => ({ id: l.id, src: l.src, p: l.p, flip: l.flip }))} /></span>
+                <span className="dz-view-label">{v === "left" ? "Left" : v === "right" ? "Right" : SIDE_LABEL[v]}{design[v].length > 0 && <i className="dz-on" aria-label="has design" />}</span>
+                {!locked && <span className="dz-view-price">+{money(sidePrice(v))}</span>}
+              </button>
+            ))}
           </aside>
         </div>
 
@@ -496,7 +522,7 @@ export default function Designer({
           <div>
             {rules ? <b className="small">{sides.length ? "Ready to send" : "Add your design"}</b> : quote ? <><b>{money(quote.total - quote.shipping_fee)}</b><span className="xs muted"> · {quote.quantity} pc</span></> : <span className="small muted">{sides.length ? "Choose sizes" : "Add your design"}</span>}
           </div>
-          <button className="btn" disabled={busy} onClick={doContinue}>{busy ? "Saving…" : continueLabel}</button>
+          <button className="btn gold" disabled={busy} onClick={() => (tool === "order" || locked ? doContinue() : setTool("order"))}>{busy ? "Saving…" : tool === "order" || locked ? continueLabel : "Order"}</button>
         </div>
       </div>
 

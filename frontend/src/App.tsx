@@ -34,8 +34,6 @@ export default function App() {
         <Route path="product/:slug" element={<Product />} />
         <Route path="cart" element={<Cart />} />
         <Route path="checkout" element={<Checkout />} />
-        <Route path="customize" element={<Customize />} />
-        <Route path="redesign/:number" element={<Redesign />} />
         <Route path="order/:number/status" element={<OrderStatus />} />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
@@ -56,6 +54,10 @@ export default function App() {
         <Route path="privacy" element={<InfoPage page="privacy" />} />
         <Route path="*" element={<NotFound />} />
       </Route>
+
+      {/* Full-screen T-shirt design studio (no store header) */}
+      <Route path="customize" element={<Customize />} />
+      <Route path="redesign/:number" element={<Redesign />} />
 
       <Route path="admin" element={<AdminLayout />}>
         <Route index element={<Dashboard />} />

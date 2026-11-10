@@ -7,6 +7,7 @@ import { useToast } from "../../context/toast";
 import { api } from "../../lib/api";
 import { loadDesign } from "../../lib/designState";
 import { designSides, fmtDate } from "../../lib/format";
+import { StudioShell } from "./Customize";
 import type { CustomDesign, CustomProduct, Order } from "../../lib/types";
 
 /** Customer replaces the design of a custom order after the store asked for a new one. */
@@ -54,39 +55,35 @@ export default function Redesign() {
     })();
   }, [number, user]);
 
-  if (!ready) return <Loader />;
+  if (!ready) return <StudioShell><Loader /></StudioShell>;
   if (!user) return <Navigate to={`/login?next=/redesign/${number}`} replace />;
-  if (err) return <div className="container"><Empty title="Order not found">{err}</Empty></div>;
-  if (!order) return <Loader />;
+  if (err) return <StudioShell><div className="container"><Empty title="Order not found">{err}</Empty></div></StudioShell>;
+  if (!order) return <StudioShell><Loader /></StudioShell>;
   if (!d?.change_request)
     return (
-      <div className="container">
-        <Empty title="No new design needed">
-          <p className="muted">This order isn't waiting for a new design.</p>
-          <Link to={`/account/orders/${order.order_number}`} className="btn mt-16">View order</Link>
-        </Empty>
-      </div>
+      <StudioShell>
+        <div className="container">
+          <Empty title="No new design needed">
+            <p className="muted">This order isn't waiting for a new design.</p>
+            <Link to={`/account/orders/${order.order_number}`} className="btn mt-16">View order</Link>
+          </Empty>
+        </div>
+      </StudioShell>
     );
-  if (!product || !initial || !rules) return <Loader />;
+  if (!product || !initial || !rules) return <StudioShell><Loader /></StudioShell>;
 
   return (
-    <div className="container dz-page">
-      <div className="dz-head">
-        <div className="crumbs"><Link to={`/account/orders/${order.order_number}`}>Order #{order.order_number}</Link> / New design</div>
-        <h1>Update your design</h1>
-      </div>
       <Designer
         products={[product]}
         initial={initial}
         rules={rules}
         continueLabel="Send new design"
-        banner={<div className="note-box warn mb-16"><b>Message from our team ({fmtDate(d.change_request.requested_at)}):</b> {d.change_request.message}</div>}
+        banner={<div className="note-box warn mb-16 small"><b>Order #{order.order_number} · message from our team ({fmtDate(d.change_request.requested_at)}):</b> {d.change_request.message}</div>}
         onContinue={async (r) => {
           await api<Order>(`/api/custom/orders/${order.order_number}/design`, { body: r.saved.payload });
           toast("Thanks! Your new design was sent to our team.", "success");
           nav(`/account/orders/${order.order_number}`, { replace: true });
         }}
       />
-    </div>
   );
 }
