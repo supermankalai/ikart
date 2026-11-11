@@ -149,8 +149,8 @@ function MobileMenu({ onClose }: { onClose(): void }) {
   );
 }
 
-// Categories shown directly in the desktop nav; every category is in the "Categories" panel.
-const NAV_LIMIT = 3;
+// How many categories get their own link in the desktop nav. None: every category is in the "Categories" panel.
+const NAV_LIMIT = 0;
 
 function Header() {
   const { categories, settings, wishlist } = useStore();

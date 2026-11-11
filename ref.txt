@@ -1,0 +1,2 @@
+Stop-Process -Id 7564 -Force
+An older iKart backend (PID 27944, on 0.0.0.0:8000) 

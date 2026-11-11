@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../context/auth";
 import { useStore } from "../../context/store";
 import { useToast } from "../../context/toast";
@@ -53,6 +53,9 @@ export interface DesignRules {
   name: boolean;
   number: boolean;
 }
+
+// three.js is big, so the 360° view is downloaded only when it is opened
+const Tee360 = lazy(() => import("./Tee360"));
 
 const TOOLS: { id: Tool; label: string; icon: string }[] = [
   { id: "product", label: "T-shirt", icon: "shirt" },
@@ -110,6 +113,7 @@ export default function Designer({
   const [saveOpen, setSaveOpen] = useState<null | "save" | "share">(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [alignOpen, setAlignOpen] = useState(false);
+  const [spin, setSpin] = useState(false); // 360° view instead of the editor
   const rosterRef = useRef(roster);
   rosterRef.current = roster;
 
@@ -145,6 +149,7 @@ export default function Designer({
   const select = useCallback((id: string | null) => {
     setActiveId(id);
     if (!id) return;
+    setSpin(false);
     const w = where(hist.current.current, id);
     if (w) {
       setView(w.v);
@@ -158,6 +163,7 @@ export default function Designer({
     hist.set((d) => ({ ...d, [target]: [...d[target], layer] }));
     setActiveId(layer.id);
     setTool(toolFor(layer));
+    setSpin(false);
   }, [hist, view, toast]);
 
   const patch = useCallback((id: string, p: Partial<EditorLayer>, group?: string) => {
@@ -371,7 +377,7 @@ export default function Designer({
 
   // ---------- Context API ----------
   const api_: DesignerApi = {
-    design, view, setView: (v) => { setView(v); setActiveId(null); }, spec, views, products, product, setProduct, color, colorHex,
+    design, view, setView: (v) => { setView(v); setActiveId(null); setSpin(false); }, spec, views, products, product, setProduct, color, colorHex,
     setColor: (c) => setColorState(c), active, select, setTool, add, patch, restyle, remove, duplicate, reorder,
     roster, setRoster: setRosterState, sizes, requireAuth, settings, config, setConfig, locked,
   };
@@ -453,7 +459,7 @@ export default function Designer({
                 <>
                   <label className="dz-mini">
                     <span>Size</span>
-                    <input type="range" min={3} max={150} value={Math.round(active.p.w * 100)}
+                    <input type="range" min={3} max={300} value={Math.round(active.p.w * 100)}
                       onChange={(e) => patch(active.id, { p: resizePlacement(active.p, Number(e.target.value) / 100) }, `size-${active.id}`)} aria-label="Size" />
                   </label>
                   <label className="dz-mini">
@@ -465,7 +471,7 @@ export default function Designer({
                     <div className="dz-pop">
                       <button className="icon-btn" onClick={() => setAlignOpen((o) => !o)} aria-label="Position" title="Position" aria-expanded={alignOpen}><Icon name="align" /></button>
                       {alignOpen && (
-                        <div className="dz-grid9" role="group" aria-label="Position on the print area">
+                        <div className="dz-grid9" role="group" aria-label="Position in the standard print area">
                           {(["top", "middle", "bottom"] as const).flatMap((v) => (["left", "center", "right"] as const).map((h) => (
                             <button key={`${v}${h}`} aria-label={`${v} ${h}`} onClick={() => { patch(active.id, { p: alignPlacement(active.p, h, v) }); setAlignOpen(false); }}><i /></button>
                           )))}
@@ -480,18 +486,31 @@ export default function Designer({
                     <button className="icon-btn" onClick={() => setActiveId(null)} aria-label="Done" title="Done"><Icon name="check" /></button>
                   </div>
                 </>
+              ) : spin ? (
+                <span className="muted small">Drag the T-shirt to turn it and see your design from every side.</span>
               ) : (
                 <span className="muted small">{design[view].length ? "Tap an item on the T-shirt to move, resize or rotate it." : "Add an image, text or art from the tools on the left."}</span>
               )}
             </div>
 
             <div className="dz-canvas">
+              {spin ? (
+                <Suspense fallback={<span className="muted small">Loading the 360° view…</span>}>
+                  <Tee360 views={views} design={design} colorHex={colorHex} photos={photos} onFail={() => { setSpin(false); toast("The 360° view isn't supported on this device", "error"); }} />
+                </Suspense>
+              ) : (
               <DesignCanvas spec={spec} color={colorHex} layers={design[view].map((l) => ({ id: l.id, src: l.src, p: l.p, flip: l.flip }))} activeId={activeId} editable
                 onSelect={select} onBegin={() => hist.set((d) => d, null)} onChange={(id, p) => hist.replace((d) => {
                   const w = where(d, id);
                   return w ? { ...d, [w.v]: d[w.v].map((l) => (l.id === id ? { ...l, p } : l)) } : d;
                 })} />
+              )}
             </div>
+
+            <button className={`dz-spin ${spin ? "on" : ""}`} onClick={() => { setSpin((v) => !v); setActiveId(null); }} aria-pressed={spin} title={spin ? "Back to editing" : "See the T-shirt from every side"}>
+              <Icon name={spin ? "edit" : "refresh"} />
+              <span>{spin ? "Edit" : "360°"}</span>
+            </button>
 
             {!locked && (
               <button className="dz-cost" onClick={() => setTool("order")} title="Sizes, quantity and price">
@@ -509,7 +528,7 @@ export default function Designer({
 
           <aside className="dz-views" role="tablist" aria-label="T-shirt sides">
             {VIEWS.map((v) => (
-              <button key={v} role="tab" aria-selected={view === v} className={view === v ? "on" : ""} onClick={() => { setView(v); setActiveId(null); }}>
+              <button key={v} role="tab" aria-selected={!spin && view === v} className={!spin && view === v ? "on" : ""} onClick={() => { setView(v); setActiveId(null); setSpin(false); }}>
                 <span className="dz-view-thumb"><DesignCanvas spec={views[v]} color={colorHex} layers={design[v].map((l) => ({ id: l.id, src: l.src, p: l.p, flip: l.flip }))} /></span>
                 <span className="dz-view-label">{v === "left" ? "Left" : v === "right" ? "Right" : SIDE_LABEL[v]}{design[v].length > 0 && <i className="dz-on" aria-label="has design" />}</span>
                 {!locked && <span className="dz-view-price">+{money(sidePrice(v))}</span>}

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { RailItem } from "../../components/HangerScene";
 import Icon from "../../components/Icon";
@@ -79,6 +79,9 @@ function supportsWebGL(): boolean {
   }
 }
 
+const SLIDES = ["New season essentials", "Design your own T-shirt", "New arrivals"];
+const SLIDE_MS = 6000;
+
 export default function Home() {
   const { categories, settings } = useStore();
   const nav = useNavigate();
@@ -87,6 +90,17 @@ export default function Home() {
   const [featured, setFeatured] = useState<P[] | null>(null);
   const [latest, setLatest] = useState<P[] | null>(null);
   const [catImages, setCatImages] = useState<Record<string, string>>({});
+  const [slide, setSlide] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  const go = (d: number) => setSlide((i) => (i + d + SLIDES.length) % SLIDES.length);
+
+  // The hero moves to the next slide by itself; it waits while the pointer or keyboard focus is on it
+  useEffect(() => {
+    if (paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = window.setInterval(() => !document.hidden && go(1), SLIDE_MS);
+    return () => window.clearInterval(t);
+  }, [paused, slide]);
 
   useEffect(() => {
     api<ProductList>("/api/products", { query: { featured: true, page_size: 8, sort: "featured" } })
@@ -119,7 +133,25 @@ export default function Home() {
 
   return (
     <>
-      <section className="hero">
+      <section
+        className="hero"
+        aria-roledescription="carousel"
+        aria-label="Highlights"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        onFocus={() => setPaused(true)}
+        onBlur={() => setPaused(false)}
+        onTouchStart={(e) => (touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY })}
+        onTouchEnd={(e) => {
+          const t = touch.current;
+          touch.current = null;
+          if (!t) return;
+          const dx = e.changedTouches[0].clientX - t.x, dy = e.changedTouches[0].clientY - t.y;
+          if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
+        }}
+      >
+        <div className="hero-track" style={{ transform: `translateX(${-slide * 100}%)` }}>
+        <div className={`hero-slide ${slide === 0 ? "on" : ""}`} role="group" aria-roledescription="slide" aria-label={`1 of ${SLIDES.length}: ${SLIDES[0]}`}>
         <div className="container">
           <div>
             <div className="eyebrow">New season essentials</div>
@@ -166,6 +198,78 @@ export default function Home() {
               )}
             </div>
           )}
+        </div>
+        </div>
+
+        <div className={`hero-slide ${slide === 1 ? "on" : ""}`} role="group" aria-roledescription="slide" aria-label={`2 of ${SLIDES.length}: ${SLIDES[1]}`}>
+          <div className="container">
+            <div>
+              <div className="eyebrow">Design your own</div>
+              <h1>
+                Your idea,<br />
+                <em>printed</em> on a tee.
+              </h1>
+              <p>Upload a photo, add text or art, place it anywhere on the T-shirt and see it from every side before you order.</p>
+              <div className="row wrap">
+                <Link to="/customize" className="btn gold lg">Start designing</Link>
+                <Link to="/shop" className="btn ghost lg">Browse T-shirts</Link>
+              </div>
+            </div>
+            <div className="hero-art hero-design" aria-hidden="true">
+              <div className="img a">{heroB?.image && <img src={heroB.image} alt="" />}</div>
+              <div className="hero-steps">
+                <span><Icon name="upload" /> Upload or add text</span>
+                <span><Icon name="shirt" /> Place it anywhere</span>
+                <span><Icon name="refresh" /> Preview in 360°</span>
+              </div>
+              <Link to="/customize" className="tag" tabIndex={-1}>
+                <span className="muted">Custom print</span>
+                <b>Made just for you</b>
+                from {money(settings.custom_print_price)} per print
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className={`hero-slide ${slide === 2 ? "on" : ""}`} role="group" aria-roledescription="slide" aria-label={`3 of ${SLIDES.length}: ${SLIDES[2]}`}>
+          <div className="container">
+            <div>
+              <div className="eyebrow">Just landed</div>
+              <h1>
+                Fresh styles,<br />
+                <em>new</em> this week.
+              </h1>
+              <p>
+                The latest drops are in. Free shipping on orders above {money(settings.free_shipping_above)} and {settings.return_days}-day easy returns.
+              </p>
+              <div className="row wrap">
+                <Link to="/shop?sort=newest" className="btn lg">See what's new</Link>
+                <Link to="/shop?sort=featured" className="btn ghost lg">Bestsellers</Link>
+              </div>
+            </div>
+            <div className="hero-art" aria-hidden="true">
+              <div className="img a">{latest?.[0]?.image && <img src={latest[0].image} alt="" />}</div>
+              <div className="img b">{(latest?.[1] || heroA)?.image && <img src={(latest?.[1] || heroA)!.image!} alt="" />}</div>
+              {latest?.[0] && (
+                <Link to={`/product/${latest[0].slug}`} className="tag" tabIndex={-1}>
+                  <span className="muted">New arrival</span>
+                  <b>{latest[0].name}</b>
+                  {money(latest[0].price)}
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+        </div>
+
+        <div className="hero-nav">
+          <button className="hero-arrow prev" onClick={() => go(-1)} aria-label="Previous slide"><Icon name="back" /></button>
+          <div className="hero-dots">
+            {SLIDES.map((label, i) => (
+              <button key={label} className={i === slide ? "on" : ""} onClick={() => setSlide(i)} aria-label={`Slide ${i + 1}: ${label}`} aria-current={i === slide} />
+            ))}
+          </div>
+          <button className="hero-arrow next" onClick={() => go(1)} aria-label="Next slide"><Icon name="chevron" /></button>
         </div>
       </section>
 

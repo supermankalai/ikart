@@ -40,13 +40,13 @@ const GAP = 0.42;
 
 // ---------- small math helpers ----------
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-const smooth = (v: number) => {
+export const smooth = (v: number) => {
   const t = clamp01(v);
   return t * t * (3 - 2 * t);
 };
 
 /** Signed distance from (x, y) to a closed polyline: positive inside, negative outside. */
-function signedDistance(x: number, y: number, pts: Vector2[]): number {
+export function signedDistance(x: number, y: number, pts: Vector2[]): number {
   let d = Infinity, inside = false;
   for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
     const a = pts[j], b = pts[i];
@@ -60,7 +60,7 @@ function signedDistance(x: number, y: number, pts: Vector2[]): number {
 }
 
 /** Split every triangle into 4. Shared edges get identical midpoints, so the mesh stays crack-free. */
-function subdivide(p: Float32Array, times: number): Float32Array {
+export function subdivide(p: Float32Array, times: number): Float32Array {
   for (let n = 0; n < times; n++) {
     const out = new Float32Array(p.length * 4);
     let o = 0;

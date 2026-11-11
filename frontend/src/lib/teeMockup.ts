@@ -222,6 +222,72 @@ function drawBase(ctx: CanvasRenderingContext2D, spec: ViewSpec, colorHex: strin
   ctx.stroke(body);
 }
 
+/** Clips to the printable part of a view: the whole garment (drawn T-shirt) or the whole photo. */
+function clipGarment(ctx: CanvasRenderingContext2D, spec: ViewSpec) {
+  if (spec.photo) {
+    ctx.beginPath();
+    ctx.rect(0, 0, spec.baseW, spec.baseH);
+    ctx.clip();
+  } else ctx.clip(new Path2D(SHAPES[spec.shape].body));
+}
+
+function drawLayers(ctx: CanvasRenderingContext2D, spec: ViewSpec, layers: RenderLayer[]) {
+  for (const l of layers) {
+    const b = toBox(spec, l.p);
+    ctx.save();
+    ctx.translate(b.x + b.w / 2, b.y + b.h / 2);
+    ctx.rotate(((l.p.rotation || 0) * Math.PI) / 180);
+    if (l.flip) ctx.scale(-1, 1);
+    ctx.drawImage(l.source, -b.w / 2, -b.h / 2, b.w, b.h);
+    ctx.restore();
+  }
+}
+
+/** A sleeve design to show on the front/back of the drawn T-shirt (360° view). */
+export interface SleeveArt {
+  spec: ViewSpec;
+  layers: RenderLayer[];
+  /** Which sleeve of the drawn T-shirt (as seen in that view) it goes on */
+  on: "left" | "right";
+}
+
+/**
+ * Draws a sleeve design onto a sleeve of the drawn front/back T-shirt. The sleeve view looks at the sleeve
+ * from the side, so its centre line lies on the sleeve's top fold: one half shows on the front, the other
+ * on the back (the caller's garment clip cuts off the half that belongs to the other face).
+ */
+function drawSleeveArt(ctx: CanvasRenderingContext2D, art: SleeveArt) {
+  if (!art.layers.length) return;
+  const { box } = art.spec;
+  const k = 0.42 * (400 / box.h); // sleeve view → T-shirt scale
+  const right = art.on === "right";
+  const ax = right ? 392 : 108; // shoulder end of the sleeve's top edge
+  const ay = 66;
+  const dx = (right ? 1 : -1) * 0.683; // along the sleeve, shoulder → cuff
+  const dy = 0.73;
+  const ex = 0.73; // around the sleeve
+  const ey = right ? -0.683 : 0.683;
+  const ox = box.x + box.w / 2;
+  const oy = box.y + box.h * 0.125;
+  ctx.save();
+  ctx.transform(k * ex, k * ey, k * dx, k * dy, ax - k * (ex * ox + dx * oy), ay - k * (ey * ox + dy * oy));
+  drawLayers(ctx, art.spec, art.layers);
+  ctx.restore();
+}
+
+/** Paints one view (garment + design) in base coordinates. The design can sit anywhere on the garment. */
+export function paintView(
+  ctx: CanvasRenderingContext2D, spec: ViewSpec, colorHex: string, layers: RenderLayer[], photo: HTMLImageElement | null = null, sleeves: SleeveArt[] = [],
+) {
+  drawBase(ctx, spec, colorHex, photo, "under");
+  ctx.save();
+  clipGarment(ctx, spec);
+  drawLayers(ctx, spec, layers);
+  if (!spec.photo) sleeves.forEach((s) => drawSleeveArt(ctx, s));
+  ctx.restore();
+  drawBase(ctx, spec, colorHex, photo, "over");
+}
+
 /** Renders one view with its layers into a PNG (the preview shown to customer and admin). */
 export async function renderPreview(spec: ViewSpec, colorHex: string, layers: RenderLayer[], photo: HTMLImageElement | null = null, width = 1000): Promise<Blob> {
   const scale = width / spec.box.w;
@@ -233,23 +299,7 @@ export async function renderPreview(spec: ViewSpec, colorHex: string, layers: Re
   ctx.fillRect(0, 0, c.width, c.height);
   ctx.scale(scale, scale);
   ctx.translate(-spec.box.x, -spec.box.y);
-
-  drawBase(ctx, spec, colorHex, photo, "under");
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(spec.area.x, spec.area.y, spec.area.w, spec.area.h);
-  ctx.clip();
-  for (const l of layers) {
-    const b = toBox(spec, l.p);
-    ctx.save();
-    ctx.translate(b.x + b.w / 2, b.y + b.h / 2);
-    ctx.rotate(((l.p.rotation || 0) * Math.PI) / 180);
-    if (l.flip) ctx.scale(-1, 1);
-    ctx.drawImage(l.source, -b.w / 2, -b.h / 2, b.w, b.h);
-    ctx.restore();
-  }
-  ctx.restore();
-  drawBase(ctx, spec, colorHex, photo, "over");
+  paintView(ctx, spec, colorHex, layers, photo);
   return canvasToBlob(c);
 }
 

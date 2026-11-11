@@ -13,7 +13,7 @@ type Mode = "move" | "scale" | "rotate";
 
 /**
  * The T-shirt (drawn or photo) with the design on it. When `editable`, items can be selected and
- * moved (drag), resized (corner handles) and rotated (top knob), with snapping to the centre lines.
+ * moved anywhere on the garment (drag), resized (corner handles) and rotated (top knob), with snapping to the centre lines.
  */
 export default function DesignCanvas({
   spec,
@@ -72,9 +72,10 @@ export default function DesignCanvas({
     if (o.mode === "move") {
       let x = o.orig.x + (pt.x - o.start.x) / area.w;
       let y = o.orig.y + (pt.y - o.start.y) / area.h;
-      // Keep at least a quarter of the item inside the print area
-      x = Math.min(1 - o.orig.w * 0.25, Math.max(-o.orig.w * 0.75, x));
-      y = Math.min(1 - o.orig.h * 0.25, Math.max(-o.orig.h * 0.75, y));
+      // Anywhere on the garment: keep the item's centre inside the picture
+      const lim = (v: number, size: number, lo: number, hi: number) => Math.max(Math.max(-1, lo - size / 2), Math.min(Math.min(2, hi - size / 2), v));
+      x = lim(x, o.orig.w, (box.x - area.x) / area.w, (box.x + box.w - area.x) / area.w);
+      y = lim(y, o.orig.h, (box.y - area.y) / area.h, (box.y + box.h - area.y) / area.h);
       const snapV = Math.abs(x + o.orig.w / 2 - 0.5) < 0.025;
       const snapH = Math.abs(y + o.orig.h / 2 - 0.5) < 0.025;
       if (snapV) x = 0.5 - o.orig.w / 2;
@@ -84,7 +85,7 @@ export default function DesignCanvas({
     } else if (o.mode === "scale") {
       const d0 = Math.hypot(o.start.x - o.c.x, o.start.y - o.c.y) || 1;
       const d1 = Math.hypot(pt.x - o.c.x, pt.y - o.c.y);
-      const k = Math.max(0.03 / o.orig.w, Math.min(2.5 / o.orig.w, d1 / d0));
+      const k = Math.max(0.03 / o.orig.w, Math.min(3 / o.orig.w, d1 / d0));
       const w = o.orig.w * k;
       const h = o.orig.h * k;
       const cx = o.orig.x + o.orig.w / 2;
@@ -133,7 +134,7 @@ export default function DesignCanvas({
           <stop offset="1" stopColor="#000" stopOpacity="0.10" />
         </linearGradient>
         <clipPath id={`print-${uid}`}>
-          <rect x={area.x} y={area.y} width={area.w} height={area.h} />
+          {spec.photo ? <rect x={0} y={0} width={spec.baseW} height={spec.baseH} /> : <path d={shape.body} />}
         </clipPath>
       </defs>
 
@@ -173,9 +174,10 @@ export default function DesignCanvas({
 
       {editable && (
         <g pointerEvents="none">
-          <rect x={area.x} y={area.y} width={area.w} height={area.h} fill="none" stroke={guide} strokeDasharray={`${hs * 0.6} ${hs * 0.5}`} strokeWidth={box.w / 400} />
-          {guides.v && <line x1={area.x + area.w / 2} x2={area.x + area.w / 2} y1={area.y} y2={area.y + area.h} stroke="#e11d48" strokeWidth={box.w / 350} />}
-          {guides.h && <line y1={area.y + area.h / 2} y2={area.y + area.h / 2} x1={area.x} x2={area.x + area.w} stroke="#e11d48" strokeWidth={box.w / 350} />}
+          {/* Centre marks of the standard print position: a guide only, the design can go anywhere */}
+          {!layers.length && <rect x={area.x} y={area.y} width={area.w} height={area.h} fill="none" stroke={guide} strokeOpacity={0.5} strokeDasharray={`${hs * 0.6} ${hs * 0.5}`} strokeWidth={box.w / 400} />}
+          {guides.v && <line x1={area.x + area.w / 2} x2={area.x + area.w / 2} y1={box.y} y2={box.y + box.h} stroke="#e11d48" strokeWidth={box.w / 350} />}
+          {guides.h && <line y1={area.y + area.h / 2} y2={area.y + area.h / 2} x1={box.x} x2={box.x + box.w} stroke="#e11d48" strokeWidth={box.w / 350} />}
         </g>
       )}
 
