@@ -13,6 +13,9 @@ type PageKey = "about" | "contact" | "shipping" | "refund" | "terms" | "privacy"
 export default function InfoPage({ page }: { page: PageKey }) {
   const { settings: s } = useStore();
   const name = s.store_name;
+  const owner = s.business_name || name;
+  // Address on one line for running text: line breaks become ", " (without doubling a comma a line already ends with)
+  const addressLine = s.business_address.split("\n").map((l) => l.trim().replace(/,+$/, "")).filter(Boolean).join(", ");
 
   const pages: Record<PageKey, { title: string; body: JSX.Element }> = {
     about: {
@@ -54,6 +57,7 @@ export default function InfoPage({ page }: { page: PageKey }) {
       title: "Shipping policy",
       body: (
         <>
+          <p>We deliver to addresses across India. We do not ship outside India at the moment.</p>
           <h2>Dispatch</h2>
           <p>Orders are packed and handed to our delivery partner within 1–2 business days.</p>
           <h2>Delivery time</h2>
@@ -95,7 +99,7 @@ export default function InfoPage({ page }: { page: PageKey }) {
         <>
           <p>
             This website ({window.location.host}) is operated by <b>{s.business_name || name}</b>
-            {s.business_address && <>, {s.business_address.replace(/\n/g, ", ")}</>}. By using this website or placing an order, you agree to these terms.
+            {addressLine && <>, {addressLine}</>}. By using this website or placing an order, you agree to these terms.
           </p>
           <h2>Use of the website</h2>
           <p>You must be at least 18 years old, or use the website under the supervision of a parent or guardian. You agree to provide accurate information and to keep your account password confidential. You are responsible for all activity on your account.</p>
@@ -112,7 +116,7 @@ export default function InfoPage({ page }: { page: PageKey }) {
           <h2>Limitation of liability</h2>
           <p>Our total liability for any claim relating to an order is limited to the amount paid for that order. We are not liable for indirect losses or delays caused by events beyond our control.</p>
           <h2>Governing law</h2>
-          <p>These terms are governed by the laws of India. Any disputes are subject to the exclusive jurisdiction of the courts in {s.jurisdiction_city || "our registered city"}.</p>
+          <p>These terms are governed by the laws of India. Any disputes are subject to the exclusive jurisdiction of the courts in {s.jurisdiction_city.trim() || "our registered city"}.</p>
           <h2>Changes & contact</h2>
           <p>We may update these terms from time to time; the version on this page applies to your order. Questions can be sent to <b>{s.support_email}</b> or <Link to="/contact" className="link">our contact page</Link>.</p>
         </>
@@ -122,13 +126,35 @@ export default function InfoPage({ page }: { page: PageKey }) {
       title: "Privacy policy",
       body: (
         <>
-          <p>We collect only the information needed to process your orders: your name, contact details and delivery address.</p>
-          <h2>How we use your data</h2>
-          <p>To fulfil and deliver orders, provide support, and share order updates. We share delivery details only with our delivery partner and payment details only with our payment gateway.</p>
-          <h2>Security</h2>
-          <p>Passwords are stored encrypted, and payments are handled by a PCI-DSS compliant gateway.</p>
+          <p>
+            This policy explains how {owner}, operating {name} ({window.location.host}), collects, uses and protects your personal information.
+            By using this website you agree to this policy.
+          </p>
+          <h2>Information we collect</h2>
+          <ul>
+            <li>Account details: your name, email address, phone number and password (stored encrypted).</li>
+            <li>Order details: delivery address, items ordered and order history.</li>
+            <li>Custom designs: images and text you upload or create in the T-shirt designer, used only to print your order.</li>
+            <li>Payment details are entered on the secure page of our payment gateway, Cashfree Payments. We never see or store your card, UPI or bank details.</li>
+          </ul>
+          <h2>How we use your information</h2>
+          <p>To process and deliver your orders, process payments and refunds, provide customer support and send you order updates. We do not sell or rent your personal information to anyone.</p>
+          <h2>Sharing</h2>
+          <p>We share only what is needed: delivery details with our delivery partner, and payment details with our payment gateway. We may disclose information when required by law.</p>
+          <h2>Cookies & browser storage</h2>
+          <p>We use your browser's storage to keep you signed in and to remember your shopping bag. We do not use advertising cookies.</p>
+          <h2>Data retention & security</h2>
+          <p>We keep order records for as long as needed for accounting, tax and legal purposes. Your data is stored on secured servers and the website is served over HTTPS.</p>
           <h2>Your choices</h2>
-          <p>You can update your details from your account or ask us to delete your account by emailing {s.support_email}.</p>
+          <p>You can view and update your details from your account, or ask us to delete your account by emailing {s.support_email}.</p>
+          <h2>Grievance officer</h2>
+          <p>
+            For any question or complaint about your data or an order, contact our grievance officer:<br />
+            <b>{owner}</b><br />
+            Email: {s.support_email} · Phone: {s.support_phone}
+            {addressLine && <><br />Address: {addressLine}</>}
+            <br />We acknowledge complaints within 48 hours and resolve them within 30 days.
+          </p>
         </>
       ),
     },
