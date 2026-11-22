@@ -20,6 +20,7 @@ export default function InfoPage({ page }: { page: PageKey }) {
       body: (
         <>
           <p>{name} is a homegrown apparel store offering premium T-shirts and track pants designed for everyday comfort.</p>
+          {s.business_name && <p>{name} is owned and operated by <b>{s.business_name}</b>.</p>}
           <p>Every product is quality checked and packed by our own team before it ships to you.</p>
           <p><Link to="/shop" className="link">Explore the collection →</Link></p>
         </>

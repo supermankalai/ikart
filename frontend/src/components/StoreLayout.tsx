@@ -323,7 +323,7 @@ function Footer() {
           </div>
         </div>
         <div className="bottom">
-          <span>© {new Date().getFullYear()} {settings.store_name}. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} {settings.store_name}{settings.business_name && <> · Operated by <b>{settings.business_name}</b></>}. All rights reserved.</span>
           <span>Secure payments by Cashfree · UPI · Cards · Net banking · COD</span>
         </div>
       </div>
